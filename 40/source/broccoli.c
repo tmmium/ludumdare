@@ -113,10 +113,12 @@ static LRESULT CALLBACK win_window_proc(HWND hWnd,UINT uMsg,WPARAM wParam,LPARAM
   return 0;
 }
 
+#define IDI_ICON0 101
+
 int bq_init(const char* title,int width,int height)
 {
   bq__init_logging(true);
-  bq_log("broccoli is good for you!\n");
+  bq_log(":: boiling broccoli - it's healthy they say ::\n\n");
   bq_get_ticks();
   
   WNDCLASSA wc={0};
@@ -126,6 +128,7 @@ int bq_init(const char* title,int width,int height)
   wc.lpszClassName="LDclassName";
   wc.hCursor=LoadCursor(NULL,IDC_ARROW);
   wc.hbrBackground=CreateSolidBrush(0x00000000);
+  wc.hIcon=LoadIcon(wc.hInstance,MAKEINTRESOURCE(IDI_ICON0));
   if (!RegisterClassA(&wc)) 
   {
     return 0;
@@ -158,6 +161,14 @@ int bq_init(const char* title,int width,int height)
     bq_log("error: opengl create\n");
     return 0;
   }
+
+  bq_log("Screen\n");
+  bq_log("  Width:    %d\n",width);
+  bq_log("  Height:   %d\n",height);
+  bq_log("OpenGL\n");
+  bq_log("  Vendor:   %s\n",glGetString(GL_VENDOR));
+  bq_log("  Version:  %s\n",glGetString(GL_VERSION));
+  bq_log("  Renderer: %s\n",glGetString(GL_RENDERER));
 
   glViewport(0,0,width,height);
   glMatrixMode(GL_PROJECTION);

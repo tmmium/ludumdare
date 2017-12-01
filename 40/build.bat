@@ -6,14 +6,16 @@ set CommonCompilerFlags=-FC -Od -MTd -nologo -fp:fast -fp:except- -Gm- -GR- -EHs
   -DUNICODE=1 -DDEVELOPMENT=1 ^
   -I..\..\external\stb\include 
 set CommonLinkerFlags=-incremental:no -opt:ref ^
-  broccoli.lib
+  broccoli.lib ^
+  icon.res
 
 IF NOT EXIST build\ mkdir build\
 pushd build\
 
 del *.pdb > NUL 2> NUL
 
+::rc /fo icon.res ..\assets\resource.rc
 cl %CommonCompilerFlags% -TC ..\source\broccoli.c -LD /link -incremental:no -opt:ref 
-cl %CommonCompilerFlags% ..\source\main.cc /link %CommonLinkerFlags% /out:ludumdarefourty.exe
+cl %CommonCompilerFlags% ..\source\main.cc /link %CommonLinkerFlags% /out:ludumdarefourty.exe 
 
 popd
