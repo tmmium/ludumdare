@@ -17,6 +17,18 @@
 #include <stdarg.h>
 #include <stdio.h>
 
+#pragma warning(push)
+#pragma warning(disable : 4456) // declaration of hides previous local declaration
+#define STB_IMAGE_STATIC
+#define STBI_ONLY_PNG
+#define STB_IMAGE_IMPLEMENTATION
+#include <stb_image.h>
+#pragma warning(disable : 4245)
+#pragma warning(disable : 4457) //
+#pragma warning(disable : 4701) // potentially uninitialized local variable used
+#include <stb_vorbis.h>
+#pragma warning(pop)
+
 // globals
 static bool global_logging_active=false;
 static const char* global_window_title=0;
@@ -232,7 +244,7 @@ static void bq__process_audio();
 int bq_process()
 {
   SwapBuffers(global_window_device);
-  Sleep(16);
+  Sleep(16); // todo: remove this sleep
 
   glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT);
   static unsigned prev=0;
@@ -254,7 +266,7 @@ int bq_process()
   return 1;
 }
 
-int bq_create_texture(int width,int height,const void* data)
+static int bq__create_texture(int width,int height,const void* data)
 {
   GLuint id=0;
   glGenTextures(1,&id);
@@ -270,6 +282,16 @@ int bq_create_texture(int width,int height,const void* data)
   return (int)id;
 }
 
+int bq_create_texture(const char* filename)
+{
+  int width,height,c;
+  stbi_uc* bitmap=stbi_load(filename,&width,&height,&c,4);
+  if (!bitmap) {return 0;}
+  int result=bq__create_texture(width,height,bitmap);
+  stbi_image_free(bitmap);
+  return result;
+}
+
 void bq_destroy_texture(const int texture_id)
 {
   GLuint id=texture_id;
@@ -279,17 +301,52 @@ void bq_destroy_texture(const int texture_id)
 void bq_bind_texture(const int texture_id)
 {
   static int bound=0;
-  if (bound!=texture_id)
-  {
-    glBindTexture(GL_TEXTURE_2D,bound=texture_id);
-  }
+  if (bound==texture_id) {return;}
+  glBindTexture(GL_TEXTURE_2D,bound=texture_id);
 }
 
-void bq_draw_triangles(int count,const v2* positions,const v2* texcoords)
+void bq_projection(const m4 projection)
+{
+  glMatrixMode(GL_PROJECTION);
+  glLoadIdentity();
+  glMultMatrixf((const GLfloat*)&projection);
+  glMatrixMode(GL_MODELVIEW);
+  glLoadIdentity();
+}
+
+void bq_render2d(int count,const v2* positions,const v2* texcoords)
 {
   if (count<=0||!positions||!texcoords) {return;}
   glVertexPointer(2,GL_FLOAT,sizeof(v2),positions);
   glTexCoordPointer(2,GL_FLOAT,sizeof(v2),texcoords);
+  glDrawArrays(GL_TRIANGLES,0,count);
+}
+
+void bq_render3d(int count,const v3* positions,const v2* texcoords,const v3* normals)
+{
+  if (count<=0||!positions||!texcoords||!normals) {return;}
+  glEnableClientState(GL_NORMAL_ARRAY);
+  glVertexPointer(3,GL_FLOAT,sizeof(v3),positions);
+  glTexCoordPointer(2,GL_FLOAT,sizeof(v2),texcoords);
+  glNormalPointer(GL_FLOAT,sizeof(v3),normals);
+  glDrawArrays(GL_TRIANGLES,0,count);
+  glDisableClientState(GL_NORMAL_ARRAY);
+}
+
+void bq_render(int count,const v3* positions,const v2* texcoords,const v3* normals)
+{
+  if (count<=0||!positions) {return;}
+  glVertexPointer(2,GL_FLOAT,sizeof(v2),positions);
+  glTexCoordPointer(2,GL_FLOAT,sizeof(v2),texcoords);
+  if (!normals) 
+  {
+    glDisableClientState(GL_NORMAL_ARRAY);
+  }
+  else
+  {
+    glEnableClientState(GL_NORMAL_ARRAY);
+    glNormalPointer(GL_FLOAT,sizeof(v3),normals);
+  }
   glDrawArrays(GL_TRIANGLES,0,count);
 }
 
@@ -316,7 +373,7 @@ static void bq__process_audio()
   }
 }
 
-int bq_create_sound(int channels,int samples,const void* data)
+static int bq__create_sound(int channels,int samples,const void* data)
 {
   int index=-1;
   for (int i=0;i<MAX_SOUND_BUFFER_COUNT;i++)
@@ -333,6 +390,16 @@ int bq_create_sound(int channels,int samples,const void* data)
     global_buffer_generations[index]++;
   int gen=global_buffer_generations[index];
   return ((gen&0xffff)<<16)|(index&0xffff);
+}
+
+int bq_create_sound(const char* filename)
+{
+  int num_channels=0,sample_rate=0;
+  short* samples=0;
+  int num_samples=stb_vorbis_decode_filename(filename,&num_channels,&sample_rate,&samples);
+  int result=bq__create_sound(num_channels,num_samples,samples);
+  free(samples);
+  return result;
 }
 
 void bq_destroy_sound(const int id)
@@ -368,4 +435,41 @@ void bq_play_sound(const int id,float volume)
   global_sound_device->lpVtbl->DuplicateSoundBuffer(global_sound_device,global_sound_buffers[bidx],&global_playing_buffers[index]);
   global_playing_buffers[index]->lpVtbl->SetVolume(global_playing_buffers[index],vol);
   global_playing_buffers[index]->lpVtbl->Play(global_playing_buffers[index],0,0,0);
+}
+
+static m4 identity()
+{
+  m4 result={0.0f};
+  result.x.x=1.0f;
+  result.y.y=1.0f;
+  result.z.z=1.0f;
+  result.w.w=1.0f;
+  return result;
+}
+
+m4 bq_orthographic(int width,int height)
+{
+  float w=(float)width,h=(float)height,znear=-1.0f,zfar=1.0f;
+  m4 result=identity();
+  result.x.x=2.0f/w;
+  result.y.y=2.0f/-h;
+  result.z.z=1.0f/(zfar-znear);
+  result.w.x=-1.0f;
+  result.w.y=1.0f;
+  result.w.z=znear/(znear-zfar);
+  return result;
+}
+
+m4 bq_perspective(float aspect,float fov,float znear,float zfar)
+{
+  m4 result=identity();
+  float h=1.0f/tanf(fov*0.5f);
+  float w=h/aspect;
+  result.x.x=w;
+  result.y.y=h;
+  result.z.z=zfar/(zfar-znear);
+  result.z.w=1.0f;
+  result.w.z=(-znear*zfar)/(zfar-znear);
+  result.w.w=0.0f;
+  return result;
 }

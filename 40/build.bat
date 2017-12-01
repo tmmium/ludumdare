@@ -1,5 +1,4 @@
 @echo off
-::call "C:\Program Files (x86)\Microsoft Visual Studio 14.0\VC\vcvarsall.bat" x64
 call "C:\Program Files (x86)\Microsoft Visual Studio\2017\Community\VC\Auxiliary\Build\vcvarsall.bat" x64
 
 set CommonCompilerFlags=-FC -Od -MTd -nologo -fp:fast -fp:except- -Gm- -GR- -EHsc -EHa- -Z7 -Oi ^
@@ -16,6 +15,5 @@ del *.pdb > NUL 2> NUL
 
 cl %CommonCompilerFlags% -TC ..\source\broccoli.c -LD /link -incremental:no -opt:ref 
 cl %CommonCompilerFlags% ..\source\main.cc /link %CommonLinkerFlags% /out:ludumdarefourty.exe
-::-subsystem:windows
 
 popd
