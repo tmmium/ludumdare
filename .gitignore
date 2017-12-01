@@ -1,0 +1,14 @@
+# directories
+build/
+
+# extensions
+*.exe
+*.lib
+*.dll
+*.idb
+*.so
+*.sdf
+*.opensdf
+
+# exceptions
+!/external/**/*
