@@ -73,26 +73,6 @@ int bq_get_ticks()
   return (int)(d/f);
 }
 
-int bq_load_file(const char* filename,int* size,void** dst)
-{
-  HANDLE hF=CreateFileA(filename,GENERIC_READ,FILE_SHARE_READ,NULL,
-    OPEN_EXISTING,FILE_ATTRIBUTE_NORMAL,NULL);
-  if (hF==INVALID_HANDLE_VALUE) {return 0;}
-  DWORD n=GetFileSize(hF,NULL);
-  void* buf=malloc(n);
-  ReadFile(hF,buf,n,NULL,NULL);
-  CloseHandle(hF);
-  if (size) {*size=n;}
-  if (dst) {*dst=buf;}
-  return 1;
-}
-
-void bq_release_file(void* src)
-{
-  if (!src) {return;}
-  free(src);
-}
-
 static LRESULT CALLBACK win_window_proc(HWND hWnd,UINT uMsg,WPARAM wParam,LPARAM lParam)
 {
   switch (uMsg) 
@@ -136,7 +116,7 @@ static LRESULT CALLBACK win_window_proc(HWND hWnd,UINT uMsg,WPARAM wParam,LPARAM
 int bq_init(const char* title,int width,int height)
 {
   bq__init_logging(true);
-  bq_log("tiny tmmium started\n");
+  bq_log("broccoli is good for you!\n");
   bq_get_ticks();
   
   WNDCLASSA wc={0};
@@ -286,7 +266,11 @@ int bq_create_texture(const char* filename)
 {
   int width,height,c;
   stbi_uc* bitmap=stbi_load(filename,&width,&height,&c,4);
-  if (!bitmap) {return 0;}
+  if (!bitmap) 
+  {
+    bq_log("error: could not load texture\n");
+    return 0;
+  }
   int result=bq__create_texture(width,height,bitmap);
   stbi_image_free(bitmap);
   return result;
@@ -386,8 +370,55 @@ static int bq__create_sound(int channels,int samples,const void* data)
   }
   if (index==-1) {return 0;}
 
+  WAVEFORMATEX fmt={0};
+  fmt.cbSize=sizeof(WAVEFORMATEX);
+  fmt.wFormatTag=WAVE_FORMAT_PCM;
+  fmt.nChannels=channels;
+  fmt.nSamplesPerSec=22050;
+  fmt.wBitsPerSample=16;
+  fmt.nBlockAlign=(fmt.nChannels*fmt.wBitsPerSample)/8;
+  fmt.nAvgBytesPerSec=fmt.nSamplesPerSec*fmt.nBlockAlign;
+
+  DSBUFFERDESC desc={0};
+  desc.dwSize=sizeof(DSBUFFERDESC);
+  desc.dwFlags=DSBCAPS_CTRLVOLUME|DSBCAPS_GLOBALFOCUS;
+  desc.dwBufferBytes=channels*samples*sizeof(short);
+  desc.lpwfxFormat=&fmt;
+
+  IDirectSoundBuffer* temp=NULL;
+  HRESULT hr=global_sound_device->lpVtbl->CreateSoundBuffer(global_sound_device,&desc,&temp,NULL);
+  if (FAILED(hr)) 
+  {
+    bq_log("error: could not create sound buffer [%d]\n",hr);
+    return 0;
+  }
+
+  IDirectSoundBuffer* secondary=NULL;
+  hr=temp->lpVtbl->QueryInterface(temp,&IID_IDirectSoundBuffer,&secondary);
+  temp->lpVtbl->Release(temp);
+  if (FAILED(hr)) 
+  {
+    bq_log("error: something bad happend to that sound buffer of yours [%d]\n",hr);
+    return 0;
+  }
+
+  DWORD size=desc.dwBufferBytes;
+  void* dst_ptr=NULL;
+  DWORD dst_size=0;
+  if (SUCCEEDED(secondary->lpVtbl->Lock(secondary,0,size,&dst_ptr,&dst_size,NULL,NULL,0)))
+  {
+    memcpy(dst_ptr,data,size);
+    secondary->lpVtbl->Unlock(secondary,&dst_ptr,dst_size,NULL,0);
+  }
+  else
+  {
+    bq_log("error: could not copy sound waves to sound buffer\n");
+  }
+
   if (!global_buffer_generations[index])
     global_buffer_generations[index]++;
+
+  global_sound_buffers[index]=secondary;
   int gen=global_buffer_generations[index];
   return ((gen&0xffff)<<16)|(index&0xffff);
 }

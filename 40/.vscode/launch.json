@@ -8,7 +8,7 @@
                 "program": "${workspaceRoot}/build/ludumdarefourty.exe",
                 "args": [],
                 "stopAtEntry": false,
-                "cwd": "${workspaceRoot}/build",
+                "cwd": "${workspaceRoot}/",
                 "environment": [],
                 "externalConsole": true
             }

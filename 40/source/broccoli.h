@@ -18,8 +18,6 @@ typedef struct m4 { v4 x, y, z, w; } m4;
 
 BQ_API void bq_log(const char* format, ...);
 BQ_API int  bq_get_ticks();
-BQ_API int  bq_load_file(const char* filename,int* size,void** dst);
-BQ_API void bq_release_file(void* src);
 
 BQ_API int  bq_init(const char* title,int width,int height);
 BQ_API int  bq_process();
