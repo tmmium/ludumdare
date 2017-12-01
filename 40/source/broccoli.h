@@ -37,6 +37,10 @@ BQ_API void bq_play_sound(const int sound_id,float volume);
 BQ_API m4 bq_orthographic(int width,int height);
 BQ_API m4 bq_perspective(float aspect,float fov,float znear,float zfar);
 
+BQ_API v2  bq_mouse_position();
+BQ_API int bq_mouse_button(int index);
+BQ_API int bq_keyboard(int index);
+
 #ifdef __cplusplus
 }
 #endif

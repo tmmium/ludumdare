@@ -113,8 +113,6 @@ static LRESULT CALLBACK win_window_proc(HWND hWnd,UINT uMsg,WPARAM wParam,LPARAM
   return 0;
 }
 
-#define IDI_ICON0 101
-
 int bq_init(const char* title,int width,int height)
 {
   bq__init_logging(true);
@@ -128,7 +126,7 @@ int bq_init(const char* title,int width,int height)
   wc.lpszClassName="LDclassName";
   wc.hCursor=LoadCursor(NULL,IDC_ARROW);
   wc.hbrBackground=CreateSolidBrush(0x00000000);
-  wc.hIcon=LoadIcon(wc.hInstance,MAKEINTRESOURCE(IDI_ICON0));
+  wc.hIcon=LoadIcon(wc.hInstance,MAKEINTRESOURCE(101));
   if (!RegisterClassA(&wc)) 
   {
     return 0;
@@ -514,4 +512,21 @@ m4 bq_perspective(float aspect,float fov,float znear,float zfar)
   result.w.z=(-znear*zfar)/(zfar-znear);
   result.w.w=0.0f;
   return result;
+}
+
+v2 bq_mouse_position()
+{
+  return global_mouse_position;
+}
+
+int bq_mouse_button(int index)
+{
+  if (index<0||index>1) {return 0;}
+  return global_mouse_buttons[index];
+}
+
+int bq_keyboard(int index)
+{
+  if (index<0||index>0xff) {return 0;}
+  return global_keyboard_keys[index];
 }
