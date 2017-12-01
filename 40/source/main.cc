@@ -4,8 +4,9 @@
 
 // game
 #if DEVELOPMENT==0
-#include <windows.h>
-int WINAPI WinMain(HINSTANCE hInstance,HINSTANCE hPrevInstance,PSTR lpCmdLine,int nCmdShow)
+typedef void* HINSTANCE;
+typedef char* PSTR;
+int __stdcall WinMain(HINSTANCE hInstance,HINSTANCE hPrevInstance,PSTR lpCmdLine,int nCmdShow)
 #else
 int main(int argc, char** argv)
 #endif

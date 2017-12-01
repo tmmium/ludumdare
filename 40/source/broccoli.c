@@ -61,6 +61,26 @@ int bq_get_ticks()
   return (int)(d/f);
 }
 
+int bq_load_file(const char* filename,int* size,void** dst)
+{
+  HANDLE hF=CreateFileA(filename,GENERIC_READ,FILE_SHARE_READ,NULL,
+    OPEN_EXISTING,FILE_ATTRIBUTE_NORMAL,NULL);
+  if (hF==INVALID_HANDLE_VALUE) {return 0;}
+  DWORD n=GetFileSize(hF,NULL);
+  void* buf=malloc(n);
+  ReadFile(hF,buf,n,NULL,NULL);
+  CloseHandle(hF);
+  if (size) {*size=n;}
+  if (dst) {*dst=buf;}
+  return 1;
+}
+
+void bq_release_file(void* src)
+{
+  if (!src) {return;}
+  free(src);
+}
+
 static LRESULT CALLBACK win_window_proc(HWND hWnd,UINT uMsg,WPARAM wParam,LPARAM lParam)
 {
   switch (uMsg) 
