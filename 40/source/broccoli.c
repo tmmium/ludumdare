@@ -233,7 +233,7 @@ static void bq__process_audio();
 int bq_process()
 {
   SwapBuffers(global_window_device);
-  Sleep(16); // todo: remove this sleep
+  Sleep(15); // todo: remove this sleep
 
   glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT);
   static unsigned prev=0;
@@ -255,7 +255,7 @@ int bq_process()
   return 1;
 }
 
-static int bq__create_texture(int width,int height,const void* data)
+int bq_create_texture(int width,int height,const void* data)
 {
   GLuint id=0;
   glGenTextures(1,&id);
@@ -271,7 +271,7 @@ static int bq__create_texture(int width,int height,const void* data)
   return (int)id;
 }
 
-int bq_create_texture(const char* filename)
+int bq_load_texture(const char* filename)
 {
   int width,height,c;
   stbi_uc* bitmap=stbi_load(filename,&width,&height,&c,4);
@@ -280,7 +280,7 @@ int bq_create_texture(const char* filename)
     bq_log("error: could not load texture\n");
     return 0;
   }
-  int result=bq__create_texture(width,height,bitmap);
+  int result=bq_create_texture(width,height,bitmap);
   stbi_image_free(bitmap);
   return result;
 }
@@ -296,51 +296,6 @@ void bq_bind_texture(const int texture_id)
   static int bound=0;
   if (bound==texture_id) {return;}
   glBindTexture(GL_TEXTURE_2D,bound=texture_id);
-}
-
-void bq_projection(const m4 projection)
-{
-  glMatrixMode(GL_PROJECTION);
-  glLoadIdentity();
-  glMultMatrixf((const GLfloat*)&projection);
-  glMatrixMode(GL_MODELVIEW);
-  glLoadIdentity();
-}
-
-void bq_render2d(int count,const v2* positions,const v2* texcoords)
-{
-  if (count<=0||!positions||!texcoords) {return;}
-  glVertexPointer(2,GL_FLOAT,sizeof(v2),positions);
-  glTexCoordPointer(2,GL_FLOAT,sizeof(v2),texcoords);
-  glDrawArrays(GL_TRIANGLES,0,count);
-}
-
-void bq_render3d(int count,const v3* positions,const v2* texcoords,const v3* normals)
-{
-  if (count<=0||!positions||!texcoords||!normals) {return;}
-  glEnableClientState(GL_NORMAL_ARRAY);
-  glVertexPointer(3,GL_FLOAT,sizeof(v3),positions);
-  glTexCoordPointer(2,GL_FLOAT,sizeof(v2),texcoords);
-  glNormalPointer(GL_FLOAT,sizeof(v3),normals);
-  glDrawArrays(GL_TRIANGLES,0,count);
-  glDisableClientState(GL_NORMAL_ARRAY);
-}
-
-void bq_render(int count,const v3* positions,const v2* texcoords,const v3* normals)
-{
-  if (count<=0||!positions) {return;}
-  glVertexPointer(2,GL_FLOAT,sizeof(v2),positions);
-  glTexCoordPointer(2,GL_FLOAT,sizeof(v2),texcoords);
-  if (!normals) 
-  {
-    glDisableClientState(GL_NORMAL_ARRAY);
-  }
-  else
-  {
-    glEnableClientState(GL_NORMAL_ARRAY);
-    glNormalPointer(GL_FLOAT,sizeof(v3),normals);
-  }
-  glDrawArrays(GL_TRIANGLES,0,count);
 }
 
 #define MAX_SOUND_BUFFER_COUNT 64
@@ -366,7 +321,7 @@ static void bq__process_audio()
   }
 }
 
-static int bq__create_sound(int channels,int samples,const void* data)
+int bq_create_sound(int channels,int samples,const void* data)
 {
   int index=-1;
   for (int i=0;i<MAX_SOUND_BUFFER_COUNT;i++)
@@ -432,12 +387,12 @@ static int bq__create_sound(int channels,int samples,const void* data)
   return ((gen&0xffff)<<16)|(index&0xffff);
 }
 
-int bq_create_sound(const char* filename)
+int bq_load_sound(const char* filename)
 {
   int num_channels=0,sample_rate=0;
   short* samples=0;
   int num_samples=stb_vorbis_decode_filename(filename,&num_channels,&sample_rate,&samples);
-  int result=bq__create_sound(num_channels,num_samples,samples);
+  int result=bq_create_sound(num_channels,num_samples,samples);
   free(samples);
   return result;
 }
@@ -475,6 +430,34 @@ void bq_play_sound(const int id,float volume)
   global_sound_device->lpVtbl->DuplicateSoundBuffer(global_sound_device,global_sound_buffers[bidx],&global_playing_buffers[index]);
   global_playing_buffers[index]->lpVtbl->SetVolume(global_playing_buffers[index],vol);
   global_playing_buffers[index]->lpVtbl->Play(global_playing_buffers[index],0,0,0);
+}
+
+void bq_projection(const m4 projection)
+{
+  glMatrixMode(GL_PROJECTION);
+  glLoadIdentity();
+  glMultMatrixf((const GLfloat*)&projection);
+  glMatrixMode(GL_MODELVIEW);
+  glLoadIdentity();
+}
+
+void bq_render2d(int count,const v2* positions,const v2* texcoords)
+{
+  if (count<=0||!positions||!texcoords) {return;}
+  glVertexPointer(2,GL_FLOAT,sizeof(v2),positions);
+  glTexCoordPointer(2,GL_FLOAT,sizeof(v2),texcoords);
+  glDrawArrays(GL_TRIANGLES,0,count);
+}
+
+void bq_render3d(int count,const v3* positions,const v2* texcoords,const v3* normals)
+{
+  if (count<=0||!positions||!texcoords||!normals) {return;}
+  glEnableClientState(GL_NORMAL_ARRAY);
+  glVertexPointer(3,GL_FLOAT,sizeof(v3),positions);
+  glTexCoordPointer(2,GL_FLOAT,sizeof(v2),texcoords);
+  glNormalPointer(GL_FLOAT,sizeof(v3),normals);
+  glDrawArrays(GL_TRIANGLES,0,count);
+  glDisableClientState(GL_NORMAL_ARRAY);
 }
 
 static m4 identity()
@@ -529,4 +512,22 @@ int bq_keyboard(int index)
 {
   if (index<0||index>0xff) {return 0;}
   return global_keyboard_keys[index];
+}
+
+int bq_file_size(const char* filename)
+{
+  WIN32_FILE_ATTRIBUTE_DATA fad={0};
+  if (!GetFileAttributesExA(filename,GetFileExInfoStandard,&fad)) {return 0;}
+  return (int)fad.nFileSizeLow;
+}
+
+int bq_load_file(const char* filename,int size,void* dst)
+{
+  HANDLE hF=CreateFileA(filename,GENERIC_READ,FILE_SHARE_READ,
+    NULL,OPEN_EXISTING,FILE_ATTRIBUTE_NORMAL,NULL);
+  if (hF==INVALID_HANDLE_VALUE) {return 0;}
+  int n=(int)GetFileSize(hF,NULL);
+  if (n<=size) {ReadFile(hF,dst,n,NULL,NULL);}
+  CloseHandle(hF);
+  return 1;
 }
