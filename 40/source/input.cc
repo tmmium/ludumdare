@@ -90,9 +90,10 @@ void controller(Input* input,Player* player,float dt)
     rotate_x(player,input->mouse_delta.y*sensitivity*input->inverse.y);
   }
 
-  const float speed=bq_keyboard(VK_SHIFT)?input->run_speed:input->walk_speed;
-  const float movement=speed*dt;
   bool moving=false;
+  bool running=bq_keyboard(VK_SHIFT);
+  const float speed=running?input->run_speed:input->walk_speed;
+  const float movement=speed*dt;
   if (bq_keyboard(VK_FORWARD))      {forward(player, movement); moving=true;}
   if (bq_keyboard(VK_BACKWARD))     {forward(player, -movement); moving=true;}
   if (bq_keyboard(VK_STRAFE_LEFT))  {strafe(player,-movement); moving=true;}
@@ -100,8 +101,9 @@ void controller(Input* input,Player* player,float dt)
 
   if (moving) 
   {
+    const float bob_factor=running?0.05f:0.025f;
     player->timer+=dt;
-    player->y_bob=0.025f*sinf(player->timer*15.0f);
+    player->y_bob=bob_factor*sinf(player->timer*15.0f);
   }
   else 
   {

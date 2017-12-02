@@ -163,6 +163,7 @@ int init(World* world,const char* filename)
 
 void collision(World* world,Player* player)
 {
+  // todo: out of bounds, kill!
   const unsigned* bitmask=world->bitmask;
   int x=player->local_position.x;
   int y=player->local_position.z;
