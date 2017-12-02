@@ -16,6 +16,6 @@ del *.pdb > NUL 2> NUL
 
 ::rc /fo icon.res ..\assets\resource.rc
 cl %CommonCompilerFlags% -TC ..\source\broccoli.c -LD /link -incremental:no -opt:ref 
-cl %CommonCompilerFlags% ..\source\main.cc /link %CommonLinkerFlags% /out:ludumdarefourty.exe 
+cl %CommonCompilerFlags% ..\source\main.cc /link %CommonLinkerFlags% /out:tmyhtwii.exe 
 
 popd

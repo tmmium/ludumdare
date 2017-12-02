@@ -1,6 +1,10 @@
 {
   "editor.fontFamily": "Liberation Mono",
   "files.associations": {
-    "*.rh": "c"
+    "*.rh": "c",
+    "xiosbase": "cpp",
+    "type_traits": "cpp",
+    "ios": "cpp",
+    "xlocale": "cpp"
   }
 }

@@ -34,6 +34,8 @@ static bool global_logging_active=false;
 static const char* global_window_title=0;
 static HWND global_window_handle=0;
 static HDC global_window_device=0;
+static int global_window_width=0;
+static int global_window_height=0;
 static IDirectSound* global_sound_device=0;
 static IDirectSoundBuffer* global_primary_buffer=0;
 static v2 global_mouse_position={0};
@@ -77,6 +79,27 @@ static LRESULT CALLBACK win_window_proc(HWND hWnd,UINT uMsg,WPARAM wParam,LPARAM
 {
   switch (uMsg) 
   {
+    case WM_INPUT:
+    {
+      static BYTE buf[48]={0};
+      UINT dwSize=sizeof(buf);
+      GetRawInputData((HRAWINPUT)lParam,RID_INPUT,buf,&dwSize,sizeof(RAWINPUTHEADER));
+      RAWINPUT* raw=(RAWINPUT*)buf;
+      if (raw->header.dwType==RIM_TYPEMOUSE)
+      {
+        global_mouse_position.x+=raw->data.mouse.lLastX; 
+        global_mouse_position.y+=raw->data.mouse.lLastY;
+        if ((raw->data.mouse.usButtonFlags&RI_MOUSE_LEFT_BUTTON_DOWN)!=0)
+          global_mouse_buttons[0]=1;
+        if ((raw->data.mouse.usButtonFlags&RI_MOUSE_LEFT_BUTTON_UP)!=0)
+          global_mouse_buttons[0]=0;
+        if ((raw->data.mouse.usButtonFlags&RI_MOUSE_RIGHT_BUTTON_DOWN)!=0)
+          global_mouse_buttons[1]=1;
+        if ((raw->data.mouse.usButtonFlags&RI_MOUSE_RIGHT_BUTTON_UP)!=0)
+          global_mouse_buttons[1]=0;
+      }
+    } break;
+#if 0
     case WM_MOUSEMOVE: 
     {
       global_mouse_position.x=(float)GET_X_LPARAM(lParam);
@@ -92,14 +115,30 @@ static LRESULT CALLBACK win_window_proc(HWND hWnd,UINT uMsg,WPARAM wParam,LPARAM
     {
       global_mouse_buttons[1]=uMsg==WM_RBUTTONDOWN?1:0;
     } break;
+#endif
     case WM_KEYDOWN:
     case WM_KEYUP:
     {
       int index=wParam;
       if (index<=0xff)
       {
-        global_keyboard_keys[index]=WM_KEYDOWN?1:0;
+        global_keyboard_keys[index]=uMsg==WM_KEYDOWN?1:0;
       }
+    } break;
+    case WM_SIZE:
+    {
+      global_window_width=LOWORD(lParam);
+      global_window_height=HIWORD(lParam);
+      glViewport(0,0,global_window_width,global_window_height);
+    } break;
+    case WM_GETMINMAXINFO:
+    {
+      RECT cr={0}; cr.right=320; cr.bottom=180;
+      AdjustWindowRect(&cr,WS_OVERLAPPEDWINDOW,FALSE);
+
+      MINMAXINFO* mmi=(MINMAXINFO*)lParam;
+      mmi->ptMinTrackSize.x=cr.right-cr.left;
+      mmi->ptMinTrackSize.y=cr.bottom-cr.top;
     } break;
     case WM_CLOSE: 
     {
@@ -132,7 +171,9 @@ int bq_init(const char* title,int width,int height)
     return 0;
   }
   
-  DWORD ws=(WS_OVERLAPPED|WS_CAPTION|WS_SYSMENU);
+  global_window_width=width;
+  global_window_height=height;
+  DWORD ws=WS_OVERLAPPEDWINDOW;//(WS_OVERLAPPED|WS_CAPTION|WS_SYSMENU);
   RECT wr={0}; wr.right=width; wr.bottom=height;
   if (!AdjustWindowRect(&wr,ws,0)) 
   {
@@ -148,6 +189,14 @@ int bq_init(const char* title,int width,int height)
     bq_log("error: window\n");
     return 0;
   }
+
+  // raw input
+  RAWINPUTDEVICE rid[1]={0};
+  rid[0].usUsagePage=0x01;
+  rid[0].usUsage=0x02;
+  rid[0].dwFlags=RIDEV_INPUTSINK;
+  rid[0].hwndTarget=window;
+  BOOL r=RegisterRawInputDevices(rid,1,sizeof(rid[0]));
 
   HDC device=GetDC(window);
   PIXELFORMATDESCRIPTOR pfd={sizeof(PIXELFORMATDESCRIPTOR),1,
@@ -174,14 +223,14 @@ int bq_init(const char* title,int width,int height)
   glOrtho(0,width,height,0,-1,1);
   glMatrixMode(GL_MODELVIEW);
   glLoadIdentity();
-  glDisable(GL_DEPTH_TEST);
+  glEnable(GL_DEPTH_TEST);
   glEnable(GL_TEXTURE_2D);
   glEnable(GL_BLEND);
   glBlendFunc(GL_SRC_ALPHA,GL_ONE_MINUS_SRC_ALPHA);
   glEnableClientState(GL_VERTEX_ARRAY);
   glEnableClientState(GL_TEXTURE_COORD_ARRAY);
   glClearDepth(1.0f);
-  glClearColor(0.1f,0.125f,0.15f,1.0f);
+  glClearColor(0.01f,0.05f,0.05f,1.0f);
   glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT);
 
   HRESULT hr=S_OK;
@@ -233,7 +282,7 @@ static void bq__process_audio();
 int bq_process()
 {
   SwapBuffers(global_window_device);
-  Sleep(15); // todo: remove this sleep
+  //Sleep(15); // todo: remove this sleep
 
   glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT);
   static unsigned prev=0;
@@ -432,35 +481,7 @@ void bq_play_sound(const int id,float volume)
   global_playing_buffers[index]->lpVtbl->Play(global_playing_buffers[index],0,0,0);
 }
 
-void bq_projection(const m4 projection)
-{
-  glMatrixMode(GL_PROJECTION);
-  glLoadIdentity();
-  glMultMatrixf((const GLfloat*)&projection);
-  glMatrixMode(GL_MODELVIEW);
-  glLoadIdentity();
-}
-
-void bq_render2d(int count,const v2* positions,const v2* texcoords)
-{
-  if (count<=0||!positions||!texcoords) {return;}
-  glVertexPointer(2,GL_FLOAT,sizeof(v2),positions);
-  glTexCoordPointer(2,GL_FLOAT,sizeof(v2),texcoords);
-  glDrawArrays(GL_TRIANGLES,0,count);
-}
-
-void bq_render3d(int count,const v3* positions,const v2* texcoords,const v3* normals)
-{
-  if (count<=0||!positions||!texcoords||!normals) {return;}
-  glEnableClientState(GL_NORMAL_ARRAY);
-  glVertexPointer(3,GL_FLOAT,sizeof(v3),positions);
-  glTexCoordPointer(2,GL_FLOAT,sizeof(v2),texcoords);
-  glNormalPointer(GL_FLOAT,sizeof(v3),normals);
-  glDrawArrays(GL_TRIANGLES,0,count);
-  glDisableClientState(GL_NORMAL_ARRAY);
-}
-
-static m4 identity()
+m4 bq_identity()
 {
   m4 result={0.0f};
   result.x.x=1.0f;
@@ -470,10 +491,97 @@ static m4 identity()
   return result;
 }
 
+m4 bq_multiply(const m4 a,const m4 b)
+{
+  m4 res;
+  res.x.x=a.x.x*b.x.x+a.x.y*b.y.x+a.x.z*b.z.x+a.x.w*b.w.z;
+  res.x.y=a.x.x*b.x.y+a.x.y*b.y.y+a.x.z*b.z.y+a.x.w*b.w.y;
+  res.x.z=a.x.x*b.x.z+a.x.y*b.y.z+a.x.z*b.z.z+a.x.w*b.w.z;
+  res.x.w=a.x.x*b.x.w+a.x.y*b.y.w+a.x.z*b.z.w+a.x.w*b.w.w;
+  res.y.x=a.y.z*b.x.x+a.y.y*b.y.x+a.y.z*b.z.x+a.y.w*b.w.z;
+  res.y.y=a.y.z*b.x.y+a.y.y*b.y.y+a.y.z*b.z.y+a.y.w*b.w.y;
+  res.y.z=a.y.z*b.x.z+a.y.y*b.y.z+a.y.z*b.z.z+a.y.w*b.w.z;
+  res.y.w=a.y.z*b.x.w+a.y.y*b.y.w+a.y.z*b.z.w+a.y.w*b.w.w;
+  res.z.x=a.z.x*b.x.x+a.z.y*b.y.x+a.z.z*b.z.x+a.z.w*b.w.z;
+  res.z.y=a.z.x*b.x.y+a.z.y*b.y.y+a.z.z*b.z.y+a.z.w*b.w.y;
+  res.z.z=a.z.x*b.x.z+a.z.y*b.y.z+a.z.z*b.z.z+a.z.w*b.w.z;
+  res.z.w=a.z.x*b.x.w+a.z.y*b.y.w+a.z.z*b.z.w+a.z.w*b.w.w;
+  res.w.x=a.w.x*b.x.x+a.w.y*b.y.x+a.w.z*b.z.x+a.w.w*b.w.z;
+  res.w.y=a.w.x*b.x.y+a.w.y*b.y.y+a.w.z*b.z.y+a.w.w*b.w.y;
+  res.w.z=a.w.x*b.x.z+a.w.y*b.y.z+a.w.z*b.z.z+a.w.w*b.w.z;
+  res.w.w=a.w.x*b.x.w+a.w.y*b.y.w+a.w.z*b.z.w+a.w.w*b.w.w;
+  return res;
+}
+
+static v3 vec3(float x,float y,float z) 
+{
+  v3 r;
+  r.x=x;
+  r.y=y;
+  r.z=z;
+  return r;
+}
+static v3 sub(const v3 a,const v3 b)
+{
+  v3 c;
+  c.x=a.x-b.x;
+  c.y=a.y-b.y;
+  c.z=a.z-b.z;
+  return c;
+}
+static v3 add(const v3 a,const v3 b)
+{
+  v3 c;
+  c.x=a.x+b.x;
+  c.y=a.y+b.y;
+  c.z=a.z+b.z;
+  return c;
+}
+static v3 normalize(const v3 a)
+{
+  v3 r=a;
+  float len=sqrtf(a.x*a.x+a.y*a.y+a.z*a.z);
+  if (len>0.0f) 
+  {
+    r.x/=len;
+    r.y/=len;
+    r.z/=len;
+  }
+  return r;
+}
+static float dot(const v3 a,const v3 b)
+{
+  return a.x*b.x+a.y*b.y+a.z*b.z;
+}
+static v3 cross(const v3 a,const v3 b)
+{
+  v3 c;
+  c.x=a.y*b.z-a.z*b.y;
+  c.y=a.z*b.x-a.x*b.z;
+  c.z=a.x*b.y-a.y*b.x;
+  return c;
+}
+
+m4 bq_lookat(const v3 target,const v3 eye)
+{
+  v3 y=vec3(0,1,0);
+  v3 x=normalize(sub(eye,target));
+  v3 z=normalize(cross(y,x));
+  y=normalize(cross(x,z));
+  m4 res=bq_identity();
+  res.x.x=x.x; res.x.y=y.x; res.x.z=z.x;
+  res.y.x=x.y; res.y.y=y.y; res.y.z=z.y;
+  res.z.x=x.z; res.z.y=y.z; res.z.z=z.z;
+  res.w.x=-dot(eye,x);
+  res.w.y=-dot(eye,y);
+  res.w.z=-dot(eye,z);
+  return res;
+}
+
 m4 bq_orthographic(int width,int height)
 {
   float w=(float)width,h=(float)height,znear=-1.0f,zfar=1.0f;
-  m4 result=identity();
+  m4 result=bq_identity();
   result.x.x=2.0f/w;
   result.y.y=2.0f/-h;
   result.z.z=1.0f/(zfar-znear);
@@ -485,7 +593,7 @@ m4 bq_orthographic(int width,int height)
 
 m4 bq_perspective(float aspect,float fov,float znear,float zfar)
 {
-  m4 result=identity();
+  m4 result=bq_identity();
   float h=1.0f/tanf(fov*0.5f);
   float w=h/aspect;
   result.x.x=w;
@@ -495,6 +603,69 @@ m4 bq_perspective(float aspect,float fov,float znear,float zfar)
   result.w.z=(-znear*zfar)/(zfar-znear);
   result.w.w=0.0f;
   return result;
+}
+
+void bq_projection(const m4 projection)
+{
+  glMatrixMode(GL_PROJECTION);
+  glLoadIdentity();
+  glMultMatrixf((const GLfloat*)&projection);
+  glMatrixMode(GL_MODELVIEW);
+  glLoadIdentity();
+}
+
+void bq_view(const m4 view)
+{
+  glMatrixMode(GL_MODELVIEW);
+  glLoadIdentity();
+  glMultMatrixf((const GLfloat*)&view);
+}
+
+void bq_prepare2d()
+{
+  glMatrixMode(GL_MODELVIEW);
+  glLoadIdentity();
+  glDisable(GL_DEPTH_TEST);
+}
+
+void bq_render2d(const v4 color,int count,const v2* positions,const v2* texcoords)
+{
+  if (count<=0||!positions||!texcoords) {return;}
+  glColor4f(color.x,color.y,color.z,color.w);
+  glVertexPointer(2,GL_FLOAT,sizeof(v2),positions);
+  glTexCoordPointer(2,GL_FLOAT,sizeof(v2),texcoords);
+  glDrawArrays(GL_TRIANGLES,0,count);
+}
+
+void bq_prepare3d()
+{
+  glEnable(GL_DEPTH_TEST);
+}
+
+void bq_render3d(const v4 color,int count,const v3* positions,const v2* texcoords,const v3* normals)
+{
+  if (count<=0||!positions||!texcoords) {return;}
+  glColor4f(color.x,color.y,color.z,color.w);
+  //glEnableClientState(GL_NORMAL_ARRAY);
+  glVertexPointer(3,GL_FLOAT,sizeof(v3),positions);
+  glTexCoordPointer(2,GL_FLOAT,sizeof(v2),texcoords);
+  //glNormalPointer(GL_FLOAT,sizeof(v3),normals);
+  glDrawArrays(GL_TRIANGLES,0,count);
+  //glDisableClientState(GL_NORMAL_ARRAY);
+}
+
+void bq_set_cursor(int state)
+{
+  ShowCursor(state==0?FALSE:TRUE);
+}
+
+void bq_center_cursor()
+{
+  POINT pt;
+  pt.x=global_window_width>>1;
+  pt.y=global_window_height>>1;
+  ClientToScreen(global_window_handle,&pt);
+  SetCursorPos(pt.x,pt.y);
 }
 
 v2 bq_mouse_position()

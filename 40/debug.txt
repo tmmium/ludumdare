@@ -1,0 +1,9 @@
+:: boiling broccoli - it's healthy they say ::
+
+Screen
+  Width:    1280
+  Height:   720
+OpenGL
+  Vendor:   NVIDIA Corporation
+  Version:  4.6.0 NVIDIA 388.13
+  Renderer: GeForce GTX 1080/PCIe/SSE2
