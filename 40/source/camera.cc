@@ -9,9 +9,9 @@ struct Camera
   float radians[3];
 };
 
-void init(Camera* camera)
+void init(Camera* camera,const m4 projection)
 {
-  camera->proj=bq_perspective(320.f/180.f,kPI*0.25f,0.1f,100.0f);
+  camera->proj=projection;
   camera->view=bq_identity();
   camera->axis[0]={1.0f,0.0f,0.0f};
   camera->axis[1]={0.0f,1.0f,0.0f};

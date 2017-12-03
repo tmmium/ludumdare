@@ -24,10 +24,11 @@ BQ_API int  bq_process();
 
 //BQ_API int  bq_load_texture(const char* filename);
 BQ_API int  bq_create_texture(int width,int height,const void* data);
+BQ_API int  bq_update_texture(const int texture_id,int width,int height,const void* data);
 BQ_API void bq_destroy_texture(const int texture_id);
 BQ_API void bq_bind_texture(const int texture_id);
 
-//BQ_API int  bq_load_sound(const char* filename);
+BQ_API int  bq_load_sound(const char* filename);
 BQ_API int  bq_create_sound(int channels,int samples,const void* data);
 BQ_API void bq_destroy_sound(const int sound_id);
 BQ_API void bq_play_sound(const int sound_id,float volume);
@@ -39,6 +40,8 @@ BQ_API m4   bq_orthographic(int width,int height);
 BQ_API m4   bq_perspective(float aspect,float fov,float znear,float zfar);
 BQ_API void bq_projection(const m4 projection);
 BQ_API void bq_view(const m4 view);
+BQ_API void bq_push_transform(const m4 transform);
+BQ_API void bq_pop_transform();
 
 BQ_API void bq_prepare2d();
 BQ_API void bq_render2d(const v4 color,int count,const v2* positions,const v2* texcoords);
@@ -55,6 +58,9 @@ BQ_API void bq_center_cursor();
 BQ_API v2   bq_mouse_position();
 BQ_API int  bq_mouse_button(int index);
 BQ_API int  bq_keyboard(int index);
+
+BQ_API v2   bq_mouse_position_in_window();
+BQ_API v2   bq_window_size();
 
 BQ_API int bq_file_size(const char* filename);
 BQ_API int bq_load_file(const char* filename,int size,void* dst);

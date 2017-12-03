@@ -23,10 +23,13 @@ void init(Font* font)
   }
 }
 
-void draw(Font* font,float x,float y,const v4 color,const char* str)
+#define MAX_VERTICES_FONT 1024
+void draw(const Font* font,const v2 position,const v4 color,const char* str)
 {
-  v2 p[1024];
-  v2 t[1024];
+  v2 p[MAX_VERTICES_FONT];
+  v2 t[MAX_VERTICES_FONT];
+  float x=position.x;
+  float y=position.y;
   float ox=x,w=font->width,h=font->height;
   float iw=w/64.0f,ih=h/64.0f;
   int len=(int)strlen(str),k=0;
@@ -52,4 +55,52 @@ void draw(Font* font,float x,float y,const v4 color,const char* str)
     x+=w+1.0f;
   }
   bq_render2d(color,k,p,t);
+}
+
+float text_width(const Font* font,const char* str)
+{
+  int len=(int)strlen(str);
+  float res=0.0f;
+  for (int i=0;i<len;i++)
+  {
+    char ch=str[i];
+    if (ch=='\n') 
+      res=0; 
+    else if(ch==' ') 
+      res+=font->width; 
+    else 
+      res+=font->width+1;
+  }
+  return res;
+}
+
+float text_height(const Font* font,const char* str)
+{
+  int len=(int)strlen(str);
+  const float line_height=font->height+2.0f;
+  float res=line_height;
+  for (int i=0;i<len;i++)
+  {
+    char ch=str[i];
+    if (ch=='\n') 
+      res+=line_height;
+  }
+  return res;
+}
+
+v2 text_offset(const Font* font,const v2 dim,const char* text)
+{
+  v2 res;
+  res.x=((dim.x-text_width(font,text))*0.5f);
+  res.y=((dim.y-text_height(font,text))*0.5f);
+  return res;
+}
+
+void draw_centered(const Font* font,const v2 dim,const v2 offset,const v4 color,const char* str)
+{
+  v2 position=text_offset(font,dim,str)+offset;
+  v2 offseted=position;
+  offseted.x+=1; offseted.y+=1;
+  draw(font,offseted,{0.0f,0.0f,0.0f,1.0f},str);
+  draw(font,position,color,str);
 }

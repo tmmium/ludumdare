@@ -24,12 +24,14 @@
 #define STBI_ONLY_PNG
 #define STB_IMAGE_IMPLEMENTATION
 #include <stb_image.h>
+#endif
+#pragma warning(push)
+#pragma warning(disable : 4456)
 #pragma warning(disable : 4245)
 #pragma warning(disable : 4457) //
 #pragma warning(disable : 4701) // potentially uninitialized local variable used
 #include <stb_vorbis.h>
 #pragma warning(pop)
-#endif
 
 // globals
 static bool global_logging_active=false;
@@ -340,6 +342,16 @@ int bq_load_texture(const char* filename)
 }
 #endif
 
+int bq_update_texture(const int id,int width,int height,const void* data)
+{
+  glBindTexture(GL_TEXTURE_2D,id);
+  glTexSubImage2D(GL_TEXTURE_2D,0,0,0,width,height,GL_RGBA,GL_UNSIGNED_BYTE,data);
+  glBindTexture(GL_TEXTURE_2D,0);
+  GLenum err=glGetError();
+  if (err!=GL_NO_ERROR) {return 0;}
+  return 1;
+}
+
 void bq_destroy_texture(const int texture_id)
 {
   GLuint id=texture_id;
@@ -442,7 +454,7 @@ int bq_create_sound(int channels,int samples,const void* data)
   return ((gen&0xffff)<<16)|(index&0xffff);
 }
 
-#if 0
+#if 1
 int bq_load_sound(const char* filename)
 {
   int num_channels=0,sample_rate=0;
@@ -629,6 +641,17 @@ void bq_view(const m4 view)
   glMultMatrixf((const GLfloat*)&view);
 }
 
+void bq_push_transform(const m4 transform)
+{
+  glPushMatrix();
+  glMultMatrixf((const GLfloat*)&transform);
+}
+
+void bq_pop_transform()
+{
+  glPopMatrix();
+}
+
 void bq_prepare2d()
 {
   glMatrixMode(GL_MODELVIEW);
@@ -707,6 +730,27 @@ int bq_keyboard(int index)
 {
   if (index<0||index>0xff) {return 0;}
   return global_keyboard_keys[index];
+}
+
+v2 bq_mouse_position_in_window()
+{
+  v2 res;
+  POINT pt={0};
+  GetCursorPos(&pt);
+  ScreenToClient(global_window_handle,&pt);
+  res.x=pt.x;
+  res.y=pt.y;
+  return res;
+}
+
+v2 bq_window_size()
+{
+  v2 res;
+  RECT cr={0};
+  GetClientRect(global_window_handle,&cr);
+  res.x=cr.right-cr.left;
+  res.y=cr.bottom-cr.top;
+  return res;
 }
 
 int bq_file_size(const char* filename)

@@ -21,6 +21,8 @@ struct Input
   v2 mouse_position;
   v2 mouse_delta;
   bool mouse_buttons[2];
+  bool left_button_once;
+  bool right_button_once;
   float sensitivity;
   v2 inverse;
   float walk_speed;
@@ -36,47 +38,57 @@ void init(Input* input)
   input->mouse_delta={0.0f,0.0f};
   input->mouse_buttons[0]=bq_mouse_button(0);
   input->mouse_buttons[1]=bq_mouse_button(1);
+  input->left_button_once=false;
+  input->right_button_once=false;
   input->sensitivity=3.0f;
   input->inverse={0.022f,-0.022f};
   input->walk_speed=2.0f;
   input->run_speed=4.0f;
 }
 
-void process(Input* input)
+void process(Input* input,GameState state)
 {
   v2 mouse=bq_mouse_position();
   input->mouse_delta=mouse-input->mouse_position;
   input->mouse_position=mouse;
-  input->mouse_buttons[0]=bq_mouse_button(0);
-  input->mouse_buttons[1]=bq_mouse_button(1);
 
-  if (!input->was_escape_down&&bq_keyboard(VK_ESCAPE))
-  {
-    input->was_escape_down=true;
-    if (input->state==INPUT_STATE_MENU)
-    {
-      input->state=INPUT_STATE_CAMERA;
-      input->is_cursor_visible=false;
-    }
-    else if(input->state==INPUT_STATE_CAMERA)
-    {
-      input->state=INPUT_STATE_MENU;
-      input->is_cursor_visible=true;
-    }
-    bq_set_cursor(input->is_cursor_visible);
-  }
-  else if(input->was_escape_down&&!bq_keyboard(VK_ESCAPE))
-  {
-    input->was_escape_down=false;
-  }
+  bool is_left_button_down=bq_mouse_button(0);
+  bool is_right_button_down=bq_mouse_button(1);
+  input->left_button_once=!input->mouse_buttons[0]&&is_left_button_down;
+  input->right_button_once=!input->mouse_buttons[1]&&is_right_button_down;
+  input->mouse_buttons[0]=is_left_button_down;
+  input->mouse_buttons[1]=is_right_button_down;
 
-  if (!input->is_cursor_visible) 
+  if (state==GAME_STATE_PLAY)
   {
-    bq_center_cursor();
+    if (!input->was_escape_down&&bq_keyboard(VK_ESCAPE))
+    {
+      input->was_escape_down=true;
+      if (input->state==INPUT_STATE_MENU)
+      {
+        input->state=INPUT_STATE_CAMERA;
+        input->is_cursor_visible=false;
+      }
+      else if(input->state==INPUT_STATE_CAMERA)
+      {
+        input->state=INPUT_STATE_MENU;
+        input->is_cursor_visible=true;
+      }
+      bq_set_cursor(input->is_cursor_visible);
+    }
+    else if(input->was_escape_down&&!bq_keyboard(VK_ESCAPE))
+    {
+      input->was_escape_down=false;
+    }
+
+    if (!input->is_cursor_visible) 
+    {
+      bq_center_cursor();
+    }
   }
 }
 
-void controller(Input* input,Player* player,float dt)
+void controller(Input* input,Player* player,const Audio* audio,float dt)
 {
   if (input->state!=INPUT_STATE_CAMERA) {return;}
 
@@ -104,11 +116,18 @@ void controller(Input* input,Player* player,float dt)
     const float bob_factor=running?0.05f:0.025f;
     player->timer+=dt;
     player->y_bob=bob_factor*sinf(player->timer*15.0f);
+    player->step+=dt;
+    if (player->step>0.42f)
+    {
+      player->step=0.0f;
+      play(audio,SOUND_STEP,0.2f);
+    }
   }
   else 
   {
     player->timer=0.0f;
     player->y_bob*=0.9f;
+    player->step=0.42f;
   }
   correct(player,{0.0f,0.0f,0.0f});
 

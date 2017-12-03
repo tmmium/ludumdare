@@ -14,13 +14,20 @@ void init(Mesh* mesh,int capacity)
   mesh->count=0;
   mesh->positions=(v3*)malloc(sizeof(v3)*capacity);
   mesh->texcoords=(v2*)malloc(sizeof(v2)*capacity);
-  bq_log("mesh: capacity %d\n",capacity);
+  bq_log("[game] mesh: capacity %d\n",capacity);
 }
 
 static void push(v3* p,v3 q0,v3 q1,v3 q2,v3 q3)
 {
   p[0]=q0; p[1]=q1; p[2]=q2;
   p[3]=q2; p[4]=q3; p[5]=q0;
+}
+
+static void push3(v3* p,v3 q0,v3 q1,v3 q2)
+{
+  p[0]=q0; 
+  p[1]=q1; 
+  p[2]=q2;
 }
 
 static void push(v2* t,v2 min,v2 max)
@@ -33,6 +40,12 @@ static void push(v2* t,v2 min,v2 max)
   t[5]={min.x,min.y};
 }
 
+static void push3(v2* t,v2 s0,v2 s1,v2 s2)
+{
+  t[0]=s0;
+  t[1]=s1;
+  t[2]=s2;
+}
 
 bool is_wall(const Bitmap* bitmap,const int x,const int y)
 {
@@ -41,7 +54,202 @@ bool is_wall(const Bitmap* bitmap,const int x,const int y)
   return pixel_at(bitmap,x,y)==0xff000000;
 }
 
-void build_world(Mesh* mesh,const Bitmap* bitmap)
+void build_spawn_mesh(Mesh* mesh)
+{
+  const v4 uvs[]=
+  {
+    //      0,    32,       14,    48,  TOP/BOTTOM
+    0.000f   ,0.250f,0.109375f,0.375f,
+    //     14,    32,       16,    48,  SIDES
+    0.109375f,0.250f,   0.125f,0.375f,
+  };
+
+  const float Q=0.3f;
+  const v3 min={-Q,0.00f,-Q};
+  const v3 max={ Q,0.05f, Q};
+  const v3 cube[8]=
+  {
+    { min.x, max.y, min.z },
+    { max.x, max.y, min.z },
+    { max.x, min.y, min.z },
+    { min.x, min.y, min.z },
+
+    { min.x, max.y, max.z },
+    { max.x, max.y, max.z },
+    { max.x, min.y, max.z },
+    { min.x, min.y, max.z },
+  };
+
+  // top
+  push(mesh->positions+mesh->count,cube[1],cube[0],cube[4],cube[5]);
+  push(mesh->texcoords+mesh->count,{uvs[0].x,uvs[0].y},{uvs[0].z,uvs[0].w}); 
+  mesh->count+=6;
+  // bottom  
+  push(mesh->positions+mesh->count,cube[2],cube[3],cube[7],cube[6]);
+  push(mesh->texcoords+mesh->count,{uvs[0].x,uvs[0].y},{uvs[0].z,uvs[0].w}); 
+  mesh->count+=6;
+  // north
+  push(mesh->positions+mesh->count,cube[0],cube[1],cube[2],cube[3]);
+  push(mesh->texcoords+mesh->count,{uvs[1].x,uvs[1].y},{uvs[1].z,uvs[1].w});
+  mesh->count+=6;
+  // south
+  push(mesh->positions+mesh->count,cube[4],cube[5],cube[6],cube[7]);
+  push(mesh->texcoords+mesh->count,{uvs[1].x,uvs[1].y},{uvs[1].z,uvs[1].w});
+  mesh->count+=6;
+  // east 
+  push(mesh->positions+mesh->count,cube[4],cube[0],cube[3],cube[7]);
+  push(mesh->texcoords+mesh->count,{uvs[1].x,uvs[1].y},{uvs[1].z,uvs[1].w});
+  mesh->count+=6;
+  // west
+  push(mesh->positions+mesh->count,cube[1],cube[5],cube[6],cube[2]);
+  push(mesh->texcoords+mesh->count,{uvs[1].x,uvs[1].y},{uvs[1].z,uvs[1].w});
+  mesh->count+=6;
+}
+
+void build_finish_mesh(Mesh* mesh)
+{
+  v4 uvs[]=
+  {
+    16.f,32.f,30.f,48.f,
+    30.f,32.f,32.f,48.f,
+  };
+  for (int i=0;i<2;i++)
+    uvs[i]=uvs[i]/128.0f;
+
+  const float Q=0.3f;
+  const v3 min={-Q,0.00f,-Q};
+  const v3 max={ Q,0.05f, Q};
+  const v3 cube[8]=
+  {
+    { min.x, max.y, min.z },
+    { max.x, max.y, min.z },
+    { max.x, min.y, min.z },
+    { min.x, min.y, min.z },
+
+    { min.x, max.y, max.z },
+    { max.x, max.y, max.z },
+    { max.x, min.y, max.z },
+    { min.x, min.y, max.z },
+  };
+
+  // top
+  push(mesh->positions+mesh->count,cube[1],cube[0],cube[4],cube[5]);
+  push(mesh->texcoords+mesh->count,{uvs[0].x,uvs[0].y},{uvs[0].z,uvs[0].w}); 
+  mesh->count+=6;
+  // bottom  
+  push(mesh->positions+mesh->count,cube[2],cube[3],cube[7],cube[6]);
+  push(mesh->texcoords+mesh->count,{uvs[0].x,uvs[0].y},{uvs[0].z,uvs[0].w}); 
+  mesh->count+=6;
+  // north
+  push(mesh->positions+mesh->count,cube[0],cube[1],cube[2],cube[3]);
+  push(mesh->texcoords+mesh->count,{uvs[1].x,uvs[1].y},{uvs[1].z,uvs[1].w});
+  mesh->count+=6;
+  // south
+  push(mesh->positions+mesh->count,cube[4],cube[5],cube[6],cube[7]);
+  push(mesh->texcoords+mesh->count,{uvs[1].x,uvs[1].y},{uvs[1].z,uvs[1].w});
+  mesh->count+=6;
+  // east 
+  push(mesh->positions+mesh->count,cube[4],cube[0],cube[3],cube[7]);
+  push(mesh->texcoords+mesh->count,{uvs[1].x,uvs[1].y},{uvs[1].z,uvs[1].w});
+  mesh->count+=6;
+  // west
+  push(mesh->positions+mesh->count,cube[1],cube[5],cube[6],cube[2]);
+  push(mesh->texcoords+mesh->count,{uvs[1].x,uvs[1].y},{uvs[1].z,uvs[1].w});
+  mesh->count+=6;
+}
+
+void build_pickup_mesh(Mesh* mesh)
+{
+  v4 uvs[]=
+  {
+    32.f,32.f,46.f,48.f,
+    46.f,32.f,48.f,48.f,
+  };
+  for (int i=0;i<2;i++)
+    uvs[i]=uvs[i]/128.0f;
+
+  const float Q=0.1f;
+  const v3 min={-Q,-Q,-Q*0.2f};
+  const v3 max={ Q, Q, Q*0.2f};
+  const v3 cube[8]=
+  {
+    { min.x, max.y, min.z },
+    { max.x, max.y, min.z },
+    { max.x, min.y, min.z },
+    { min.x, min.y, min.z },
+
+    { min.x, max.y, max.z },
+    { max.x, max.y, max.z },
+    { max.x, min.y, max.z },
+    { min.x, min.y, max.z },
+  };
+
+  // top
+  push(mesh->positions+mesh->count,cube[1],cube[0],cube[4],cube[5]);
+  push(mesh->texcoords+mesh->count,{uvs[1].x,uvs[1].y},{uvs[1].z,uvs[1].w}); 
+  mesh->count+=6;
+  // bottom  
+  push(mesh->positions+mesh->count,cube[2],cube[3],cube[7],cube[6]);
+  push(mesh->texcoords+mesh->count,{uvs[1].x,uvs[1].y},{uvs[1].z,uvs[1].w}); 
+  mesh->count+=6;
+  // north
+  push(mesh->positions+mesh->count,cube[0],cube[1],cube[2],cube[3]);
+  push(mesh->texcoords+mesh->count,{uvs[0].x,uvs[0].y},{uvs[0].z,uvs[0].w});
+  mesh->count+=6;
+  // south
+  push(mesh->positions+mesh->count,cube[4],cube[5],cube[6],cube[7]);
+  push(mesh->texcoords+mesh->count,{uvs[0].x,uvs[0].y},{uvs[0].z,uvs[0].w});
+  mesh->count+=6;
+  // east 
+  push(mesh->positions+mesh->count,cube[4],cube[0],cube[3],cube[7]);
+  push(mesh->texcoords+mesh->count,{uvs[1].x,uvs[1].y},{uvs[1].z,uvs[1].w});
+  mesh->count+=6;
+  // west
+  push(mesh->positions+mesh->count,cube[1],cube[5],cube[6],cube[2]);
+  push(mesh->texcoords+mesh->count,{uvs[1].x,uvs[1].y},{uvs[1].z,uvs[1].w});
+  mesh->count+=6;
+}
+
+void build_spike_mesh(Mesh* mesh)
+{
+  v2 uvs[]=
+  {
+    55.5f,32.f,
+    63.f,47.f,
+    48.f,47.f,
+  };
+  for (int i=0;i<6;i++)
+    uvs[i]=uvs[i]/128.0f;
+
+  const v3 offsets[3]=
+  {
+    {  0.0f, 0.0f, 0.15f},
+    { 0.15f, 0.0f,-0.15f},
+    {-0.15f, 0.0f,-0.15f},
+  };
+  const v3 cube[4]=
+  {
+    { 0.0f, 0.3f, 0.0f },
+    { 0.0f, 0.0f, 0.1f },
+    { 0.1f, 0.0f,-0.1f },
+    {-0.1f, 0.0f,-0.1f },
+  };
+
+  for (int i=0;i<3;i++)
+  {
+    push3(mesh->positions+mesh->count,cube[0]+offsets[i],cube[1]+offsets[i],cube[2]+offsets[i]);
+    push3(mesh->texcoords+mesh->count,uvs[0],uvs[1],uvs[2]);
+    mesh->count+=3;
+    push3(mesh->positions+mesh->count,cube[0]+offsets[i],cube[2]+offsets[i],cube[3]+offsets[i]);
+    push3(mesh->texcoords+mesh->count,uvs[0],uvs[1],uvs[2]);
+    mesh->count+=3;
+    push3(mesh->positions+mesh->count,cube[0]+offsets[i],cube[3]+offsets[i],cube[1]+offsets[i]);
+    push3(mesh->texcoords+mesh->count,uvs[0],uvs[1],uvs[2]);
+    mesh->count+=3;
+  }
+}
+
+void build_world_mesh(Mesh* mesh,const Bitmap* bitmap)
 {
   const v4 uvs[]=
   {
@@ -119,4 +327,15 @@ void build_world(Mesh* mesh,const Bitmap* bitmap)
       }
     }
   }
+}
+
+void draw(const Mesh* mesh,const v3 position,const float rotation)
+{
+  m4 transform=rotate({0.f,1.f,0.f},rotation);
+  transform.w.x=position.x;
+  transform.w.y=position.y;
+  transform.w.z=position.z;
+  bq_push_transform(transform);
+  bq_render3d({1.0f,1.0f,1.0f,1.0f},mesh->count,mesh->positions,mesh->texcoords,nullptr);
+  bq_pop_transform();
 }

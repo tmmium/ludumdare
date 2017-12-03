@@ -12,6 +12,7 @@ inline float signf(const float a) {return a<0.0f?-1.f:1.f;}
 inline v2 operator+(const v2& l,const v2& r) {return {l.x+r.x,l.y+r.y};}
 inline v2 operator-(const v2& l,const v2& r) {return {l.x-r.x,l.y-r.y};}
 inline v2 operator*(const v2& l,const float r) {return {l.x*r,l.y*r};}
+inline v2 operator/(const v2& l,const float r) {return {l.x/r,l.y/r};}
 
 inline v3 operator+(const v3& l,const v3& r) {return {l.x+r.x,l.y+r.y,l.z+r.z};}
 inline v3 operator-(const v3& l,const v3& r) {return {l.x-r.x,l.y-r.y,l.z-r.z};}

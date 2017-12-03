@@ -8,6 +8,13 @@
     "xlocale": "cpp",
     "limits": "cpp",
     "xstring": "cpp",
-    "istream": "c"
+    "istream": "c",
+    "iosfwd": "cpp",
+    "xutility": "cpp",
+    "utility": "cpp",
+    "xmemory0": "cpp",
+    "xstddef": "cpp",
+    "xtr1common": "cpp",
+    "xlocnum": "c"
   }
 }

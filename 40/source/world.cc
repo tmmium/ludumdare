@@ -2,26 +2,24 @@
 
 struct World
 {
-  m4 perspective;
-  Camera camera;
-  Player player;
-
-  v3 spawn_point;
-  v3 goal_point;
+  v3 spawn;
+  v3 finish;
   Bitmap collision;
   Bitmap bitmap;
   int texture;
-  Mesh world;
-
+  Mesh world_mesh;
+  Mesh entity_mesh[4];
   int num_entities;
   Entity* entities;
 };
 
 const unsigned ENTITYCOLOR[ENTITY_TYPE_COUNT]=
 {
-  0xff000000, // invalid
   0xff0000ff, // spawn
-  0xff00ff00, // goal
+  0xff00ff00, // finish
+  0xff00ffff, // pickup
+  0xffff00ff, // spike
+  0xff000000, // invalid
 };
 
 static unsigned entity_color(EntityType type)
@@ -34,23 +32,34 @@ static bool is_entity_type(unsigned color,EntityType type)
   return ENTITYCOLOR[type]==color;
 }
 
+void reset(World* world)
+{
+  for (int i=0,e=world->num_entities;i<e;i++)
+  {
+    reset(world->entities+i);
+  }
+}
+
 bool init(World* world,const char* filename,int screen_width,int screen_height)
 {
   Bitmap bitmap;
   if (!init(&bitmap,filename)) {return false;}
   int texture=bq_create_texture(bitmap.width,bitmap.height,bitmap.data);
+  if (texture==0) {return false;}
 
-  const int MAX_WIDTH=bitmap.width;
-  const int MAX_HEIGHT=bitmap.height>>1;
+  Bitmap collision;
+  collision.width=bitmap.width;
+  collision.height=bitmap.height>>1;
+  collision.data=bitmap.data+collision.width*collision.height;
 
-  int num_tiles=0;
-  int num_entities=0;
-  v3 spawn={},goal={};
-  for (int y=0;y<MAX_HEIGHT;y++)
+  int num_tiles=0,num_entities=0;
+  v3 spawn={},finish={};
+
+  for (int y=0;y<collision.height;y++)
   {
-    for (int x=0;x<MAX_WIDTH;x++)
+    for (int x=0;x<collision.width;x++)
     {
-      unsigned pixel=pixel_at(&bitmap,x,y+64);
+      unsigned pixel=pixel_at(&collision,x,y);
       if (is_entity_type(pixel,ENTITY_INVALID)) {continue;}
 
       num_tiles++;
@@ -62,29 +71,69 @@ bool init(World* world,const char* filename,int screen_width,int screen_height)
       else if (is_entity_type(pixel,ENTITY_FINISH))
       {
         num_entities++;
-        goal={(float)x+0.5f,0.0f,(float)y+0.5f};
+        finish={(float)x+0.5f,0.0f,(float)y+0.5f};
+      }
+      else if(is_entity_type(pixel,ENTITY_PICKUP))
+      {
+        num_entities++;
+      }
+      else if(is_entity_type(pixel,ENTITY_SPIKE))
+      {
+        num_entities++;
       }
     }
   }
 
-  if (length(spawn)<0.1f||length(goal)<0.1f) {return false;}
+  if (length(spawn)<0.1f||length(finish)<0.1f) {return false;}
 
-  world->perspective=bq_perspective((float)screen_width/(float)screen_height,kPI*0.35f,0.25f,200.0f);
-
-  init(&world->camera);
-  update(&world->camera);
-  init(&world->player,spawn);
-
-  world->spawn_point=spawn;
-  world->goal_point=goal;
+  world->spawn=spawn;
+  world->finish=finish;
   world->texture=texture;
-  init(&world->world,num_tiles*6*6);
-
   world->bitmap=bitmap;
-  world->collision.width=MAX_WIDTH;
-  world->collision.height=MAX_HEIGHT;
-  world->collision.data=bitmap.data+MAX_WIDTH*MAX_HEIGHT;
-  build_world(&world->world,&world->collision);
+  world->collision=collision;
+  init(&world->world_mesh,num_tiles*6*6);
+  build_world_mesh(&world->world_mesh,&world->collision);
+  init(world->entity_mesh+ENTITY_SPAWN,6*6);
+  build_spawn_mesh(world->entity_mesh+ENTITY_SPAWN);
+  init(world->entity_mesh+ENTITY_FINISH,6*6);
+  build_finish_mesh(world->entity_mesh+ENTITY_FINISH);
+  init(world->entity_mesh+ENTITY_PICKUP,6*6);
+  build_pickup_mesh(world->entity_mesh+ENTITY_PICKUP);
+  init(world->entity_mesh+ENTITY_SPIKE,27);
+  build_spike_mesh(world->entity_mesh+ENTITY_SPIKE);
+  
+  world->num_entities=0;
+  world->entities=(Entity*)malloc(sizeof(Entity)*num_entities);
+  
+  for (int y=0;y<collision.height;y++)
+  {
+    for (int x=0;x<collision.width;x++)
+    {
+      unsigned pixel=pixel_at(&collision,x,y);
+      if (is_entity_type(pixel,ENTITY_INVALID)) {continue;}
+
+      if (is_entity_type(pixel,ENTITY_SPAWN)) 
+      {
+        init(world->entities+world->num_entities,ENTITY_SPAWN,{x+0.5f,0.0f,y+0.5f});
+        world->num_entities++;
+      }
+      else if (is_entity_type(pixel,ENTITY_FINISH))
+      {
+        init(world->entities+world->num_entities,ENTITY_FINISH,{x+0.5f,0.0f,y+0.5f});
+        world->num_entities++;
+      }
+      else if(is_entity_type(pixel,ENTITY_PICKUP))
+      {
+        init(world->entities+world->num_entities,ENTITY_PICKUP,{x+0.5f,0.0f,y+0.5f});
+        world->num_entities++;
+      }
+      else if(is_entity_type(pixel,ENTITY_SPIKE))
+      {
+        init(world->entities+world->num_entities,ENTITY_SPIKE,{x+0.5f,0.0f,y+0.5f});
+        world->num_entities++;
+      }
+    }
+  }
 
   return true;
 }
@@ -107,6 +156,7 @@ void contain(World* world,Player* player)
     {x  ,y+1, x+1,y+2},
     {x+1,y+1, x+2,y+2},
   };
+
   bool check[9]={};
   check[0]=is_wall(&world->collision,x-1,y-1);
   check[1]=is_wall(&world->collision,x  ,y-1);
@@ -167,29 +217,86 @@ void contain(World* world,Player* player)
   correct(player,correction);
 }
 
-void update(World* world,Input* input,float dt)
+bool is_goal_reached(const World* world,const Player* player)
 {
-  controller(input,&world->player,dt);
-  contain(world,&world->player);
-  controller(input,&world->camera,&world->player);
-}
-
-bool finish(World* world)
-{
-  v3 diff=world->goal_point-world->player.position;
+  v3 diff=world->finish-player->position;
   float dist=length(diff);
   if (dist<0.7f) {return true;}
   return false;
 }
 
-void draw(World* world)
+void update(World* world,Player* player,const Audio* audio,float dt)
+{
+  const v3 pp=player->local_position;
+  for (int i=0,e=world->num_entities;i<e;i++)
+  {
+    Entity* ent=world->entities+i;
+    if (!ent->active) {continue;}
+    if (ent->type==ENTITY_PICKUP)
+    {
+      ent->timer+=dt;
+      ent->y_bob=0.2f+0.01f*sinf(ent->timer*10.0f);
+      
+      float dist=length(pp-ent->position);
+      if (dist<0.4f)
+      {
+        ent->active=false;
+        player->score+=1;
+        if (player->score>10)
+        {
+          player->health++;
+          player->score=0;
+          play(audio,SOUND_BONUS,0.15f);          
+        }
+        else 
+          play(audio,SOUND_PICKUP,0.15f);
+      }
+    }
+    else if(ent->type==ENTITY_SPIKE)
+    {
+      if (ent->triggered)
+      {
+        ent->y_bob=0.0f;
+      }
+      else 
+      {
+        ent->y_bob=-0.25f;
+      }
+
+      float dist=length(pp-ent->position);
+      if (dist<0.3f)
+      {
+        if (!ent->triggered)
+        {
+          ent->triggered=true;
+          play(audio,SOUND_SPIKE,0.2f);
+          take_damage(player);
+        }
+      }
+      else 
+      {
+        ent->triggered=false;
+      }
+    }
+  }
+}
+
+void draw(const World* world,const Camera* camera)
 {
   bq_prepare3d();
-  bq_enable_fog({0,0,0,1},0.3f,1.0f,10.0f);
-  bq_projection(world->perspective);
-  bq_view(world->camera.view);
+  bq_enable_fog({0,0,0,1},0.5f,1.0f,10.0f);
+  bq_projection(camera->proj);
+  bq_view(camera->view);
   bq_bind_texture(world->texture);
-  bq_render3d({1.0f,1.0f,1.0f,1.0f},world->world.count,world->world.positions,world->world.texcoords,nullptr);
+
   // objects
+  draw(&world->world_mesh,{0.f,0.f,0.f},0.0f);
+  for (int i=0;i<world->num_entities;i++)
+  {
+    const Entity* ent=world->entities+i;
+    if (!ent->active) {continue;}
+    const Mesh* mesh=world->entity_mesh+ent->type;
+    draw(mesh,entity_position(ent),entity_rotation(ent));
+  }
 }
 
