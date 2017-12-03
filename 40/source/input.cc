@@ -42,7 +42,7 @@ void init(Input* input)
   input->run_speed=4.0f;
 }
 
-void update(Input* input)
+void process(Input* input)
 {
   v2 mouse=bq_mouse_position();
   input->mouse_delta=mouse-input->mouse_position;
@@ -110,9 +110,7 @@ void controller(Input* input,Player* player,float dt)
     player->timer=0.0f;
     player->y_bob*=0.9f;
   }
-
-  v3 bob={0.0f,player->y_bob,0.0f};
-  player->position=player->local_position+bob;
+  correct(player,{0.0f,0.0f,0.0f});
 
   v3 x={1.0f,0.0f,0.0f};
   v3 y={0.0f,1.0f,0.0f};
@@ -133,8 +131,6 @@ void controller(Input* input,Player* player,float dt)
 
 void controller(Input* input,Camera* camera,Player* player)
 {
-  if (input->state!=INPUT_STATE_CAMERA) {return;}
-
   camera->radians[0]=player->radians[0];
   camera->radians[1]=player->radians[1];
   camera->radians[2]=player->radians[2];

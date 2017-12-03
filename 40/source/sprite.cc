@@ -10,7 +10,7 @@ void init(Sprite* sprite,float x,float y,float w,float h)
 {
   sprite->dim={w,h};
   sprite->uv={x,y,x+w,y+h};
-  sprite->uv=sprite->uv/256.0f;
+  sprite->uv=sprite->uv/64.0f;
 }
 
 void draw(Sprite* sprite,float x,float y)

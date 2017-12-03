@@ -2,6 +2,7 @@
 
 struct Player
 {
+  float height;
   float radius;
   float x_limit;
   float timer;
@@ -12,8 +13,16 @@ struct Player
   float radians[3];
 };
 
-void init(Player* player,const v3 position)
+void correct(Player* player,v3 offset)
 {
+  player->local_position=player->local_position+offset;
+  v3 bob={0.0f,player->height+player->y_bob,0.0f};
+  player->position=player->local_position+bob;
+}
+
+void init(Player* player,v3 position)
+{
+  player->height=0.5f;
   player->radius=0.25f;
   player->x_limit=kPI*0.49f;
   player->timer=0.0f;
@@ -26,6 +35,7 @@ void init(Player* player,const v3 position)
   player->radians[0]=0.0f;
   player->radians[1]=0.0f;
   player->radians[1]=0.0f;
+  correct(player,{0.0f,0.0f,0.0f});
 }
 
 void forward(Player* player,float amount)
@@ -53,12 +63,4 @@ void rotate_y(Player* player,float amount)
   player->radians[1]+=amount;
   if (player->radians[1]>kPI2) {player->radians[1]-=kPI2;}
   if (player->radians[1]<kPI2) {player->radians[1]+=kPI2;}
-}
-
-void correct(Player* player,v3 correction)
-{
-  player->local_position=player->local_position+correction;
-  
-  v3 bob={0.0f,player->y_bob,0.0f};
-  player->position=player->local_position+bob;
 }

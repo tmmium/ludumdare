@@ -1,174 +1,101 @@
 // world.cc
 
-#pragma warning(push)
-#pragma warning(disable : 4456) // declaration of hides previous local declaration
-#define STB_IMAGE_STATIC
-#define STBI_ONLY_PNG
-#define STB_IMAGE_IMPLEMENTATION
-#include <stb_image.h>
-#pragma warning(pop)
-
-struct Mesh
-{
-  int capacity;
-  int count;
-  v3* positions;
-  v2* texcoords;
-};
-
-void init(Mesh* mesh,int capacity)
-{
-  mesh->capacity=capacity;
-  mesh->count=0;
-  mesh->positions=(v3*)malloc(sizeof(v3)*capacity);
-  mesh->texcoords=(v2*)malloc(sizeof(v2)*capacity);
-}
-
-void push(v3* p,v3 q0,v3 q1,v3 q2,v3 q3)
-{
-  p[0]=q0; p[1]=q1; p[2]=q2;
-  p[3]=q2; p[4]=q3; p[5]=q0;
-}
-
-void push(v2* t,v2 min,v2 max)
-{
-  t[0]={min.x,min.y};
-  t[1]={max.x,min.y};
-  t[2]={max.x,max.y};
-  t[3]={max.x,max.y};
-  t[4]={min.x,max.y};
-  t[5]={min.x,min.y};
-}
-
-bool wall(const unsigned* bitmask,const int x,const int y)
-{
-  if (x<0||x>64) {return true;}
-  if (y<0||y>48) {return true;}
-  return bitmask[64*y+x]==0xff000000;
-}
-
-#pragma warning(push)
-#pragma warning(disable:4838)
-void build(Mesh* mesh,const unsigned* bitmask)
-{
-  const v4 uv[]=
-  {
-    0.00f,0.0f, 0.25f,0.25f,
-    0.25f,0.0f, 0.50f,0.25f,
-    0.50f,0.0f, 0.75f,0.25f,
-    0.75f,0.0f, 1.00f,0.25f
-  };
-
-  for (int y=0;y<48;y++)
-  {
-    for (int x=0;x<64;x++)
-    {
-      unsigned pixel=bitmask[64*y+x];
-      if (pixel==0xff000000) {continue;}
-
-      const v3 min={x,0,y};
-      const v3 max={x+1,1,y+1};
-
-      v3 cube[8]=
-      {
-        { min.x, max.y, min.z },
-        { max.x, max.y, min.z },
-        { max.x, min.y, min.z },
-        { min.x, min.y, min.z },
-
-        { min.x, max.y, max.z },
-        { max.x, max.y, max.z },
-        { max.x, min.y, max.z },
-        { min.x, min.y, max.z },
-      };
-
-      // floor
-      push(mesh->positions+mesh->count,cube[2],cube[3],cube[7],cube[6]);
-      push(mesh->texcoords+mesh->count,{uv[0].x,uv[0].y},{uv[0].z,uv[0].w});
-      mesh->count+=6;
-
-      // roof
-      push(mesh->positions+mesh->count,cube[1],cube[0],cube[4],cube[5]);
-      push(mesh->texcoords+mesh->count,{uv[2].x,uv[2].y},{uv[2].z,uv[2].w});
-      mesh->count+=6;
-
-      if (wall(bitmask,x,y-1))
-      {
-        // north
-        push(mesh->positions+mesh->count,cube[0],cube[1],cube[2],cube[3]);
-        push(mesh->texcoords+mesh->count,{uv[1].x,uv[1].y},{uv[1].z,uv[1].w});
-        mesh->count+=6;
-      }
-      if (wall(bitmask,x,y+1))
-      {
-        // south
-        push(mesh->positions+mesh->count,cube[4],cube[5],cube[6],cube[7]);
-        push(mesh->texcoords+mesh->count,{uv[1].x,uv[1].y},{uv[1].z,uv[1].w});
-        mesh->count+=6;
-      }
-      if (wall(bitmask,x-1,y))
-      {
-        // east 
-        push(mesh->positions+mesh->count,cube[4],cube[0],cube[3],cube[7]);
-        push(mesh->texcoords+mesh->count,{uv[1].x,uv[1].y},{uv[1].z,uv[1].w});
-        mesh->count+=6;
-      }
-      if (wall(bitmask,x+1,y))
-      {
-        // west
-        push(mesh->positions+mesh->count,cube[1],cube[5],cube[6],cube[2]);
-        push(mesh->texcoords+mesh->count,{uv[1].x,uv[1].y},{uv[1].z,uv[1].w});
-        mesh->count+=6;
-      }
-    }
-  }
-}
-
 struct World
 {
-  int texture;
-  unsigned* bitmap;
-  unsigned* bitmask;
+  m4 perspective;
+  Camera camera;
+  Player player;
+
   v3 spawn_point;
-  Mesh mesh;
+  v3 goal_point;
+  Bitmap collision;
+  Bitmap bitmap;
+  int texture;
+  Mesh world;
+
+  int num_entities;
+  Entity* entities;
 };
 
-int init(World* world,const char* filename)
+const unsigned ENTITYCOLOR[ENTITY_TYPE_COUNT]=
 {
-  int width,height,c;
-  stbi_uc* bitmap=stbi_load(filename,&width,&height,&c,4);
-  if (!bitmap) {return 0;}
+  0xff000000, // invalid
+  0xff0000ff, // spawn
+  0xff00ff00, // goal
+};
 
-  world->texture=bq_create_texture(width,height,bitmap);
-  world->bitmap=(unsigned*)bitmap;
-  world->bitmask=world->bitmap+1024;
+static unsigned entity_color(EntityType type)
+{
+  return ENTITYCOLOR[type];
+}
+
+static bool is_entity_type(unsigned color,EntityType type)
+{
+  return ENTITYCOLOR[type]==color;
+}
+
+bool init(World* world,const char* filename,int screen_width,int screen_height)
+{
+  Bitmap bitmap;
+  if (!init(&bitmap,filename)) {return false;}
+  int texture=bq_create_texture(bitmap.width,bitmap.height,bitmap.data);
+
+  const int MAX_WIDTH=bitmap.width;
+  const int MAX_HEIGHT=bitmap.height>>1;
 
   int num_tiles=0;
-  for (int y=0;y<48;y++)
+  int num_entities=0;
+  v3 spawn={},goal={};
+  for (int y=0;y<MAX_HEIGHT;y++)
   {
-    for (int x=0;x<64;x++)
+    for (int x=0;x<MAX_WIDTH;x++)
     {
-      unsigned pixel=world->bitmask[64*y+x];
-      if (pixel==0xff000000) {continue;}
+      unsigned pixel=pixel_at(&bitmap,x,y+64);
+      if (is_entity_type(pixel,ENTITY_INVALID)) {continue;}
+
       num_tiles++;
-      if (pixel==0xff00ff00) {world->spawn_point={(float)x+0.5f,0.65f,(float)y+0.5f};}
+      if (is_entity_type(pixel,ENTITY_SPAWN)) 
+      {
+        num_entities++;
+        spawn={(float)x+0.5f,0.0f,(float)y+0.5f};
+      }
+      else if (is_entity_type(pixel,ENTITY_FINISH))
+      {
+        num_entities++;
+        goal={(float)x+0.5f,0.0f,(float)y+0.5f};
+      }
     }
   }
 
-  init(&world->mesh,num_tiles*6*6);
-  build(&world->mesh,world->bitmask);
+  if (length(spawn)<0.1f||length(goal)<0.1f) {return false;}
 
-  return 1;
+  world->perspective=bq_perspective((float)screen_width/(float)screen_height,kPI*0.35f,0.25f,200.0f);
+
+  init(&world->camera);
+  update(&world->camera);
+  init(&world->player,spawn);
+
+  world->spawn_point=spawn;
+  world->goal_point=goal;
+  world->texture=texture;
+  init(&world->world,num_tiles*6*6);
+
+  world->bitmap=bitmap;
+  world->collision.width=MAX_WIDTH;
+  world->collision.height=MAX_HEIGHT;
+  world->collision.data=bitmap.data+MAX_WIDTH*MAX_HEIGHT;
+  build_world(&world->world,&world->collision);
+
+  return true;
 }
 
-void collision(World* world,Player* player)
+void contain(World* world,Player* player)
 {
   // todo: out of bounds, kill!
-  const unsigned* bitmask=world->bitmask;
-  int x=player->local_position.x;
-  int y=player->local_position.z;
+  const float x=floor(player->local_position.x);
+  const float y=floor(player->local_position.z);
 
-  v4 mm[]=
+  const v4 collision_grid[]=
   {
     {x-1,y-1, x  ,y  },
     {x  ,y-1, x+1,y  },
@@ -181,15 +108,15 @@ void collision(World* world,Player* player)
     {x+1,y+1, x+2,y+2},
   };
   bool check[9]={};
-  check[0]=wall(bitmask,x-1,y-1);
-  check[1]=wall(bitmask,x  ,y-1);
-  check[2]=wall(bitmask,x+1,y-1);
-  check[3]=wall(bitmask,x-1,y  );
-  check[4]=wall(bitmask,x  ,y  );
-  check[5]=wall(bitmask,x+1,y  );
-  check[6]=wall(bitmask,x-1,y+1);
-  check[7]=wall(bitmask,x  ,y+1);
-  check[8]=wall(bitmask,x+1,y+1);
+  check[0]=is_wall(&world->collision,x-1,y-1);
+  check[1]=is_wall(&world->collision,x  ,y-1);
+  check[2]=is_wall(&world->collision,x+1,y-1);
+  check[3]=is_wall(&world->collision,x-1,y  );
+  check[4]=is_wall(&world->collision,x  ,y  );
+  check[5]=is_wall(&world->collision,x+1,y  );
+  check[6]=is_wall(&world->collision,x-1,y+1);
+  check[7]=is_wall(&world->collision,x  ,y+1);
+  check[8]=is_wall(&world->collision,x+1,y+1);
 
   v3 correction={};  
   v2 position={player->local_position.x,player->local_position.z};
@@ -198,7 +125,7 @@ void collision(World* world,Player* player)
   {
     if (check[i])
     {
-      v4 box=mm[i];
+      v4 box=collision_grid[i];
       
       // box metrics
       float box_half_width=(box.z-box.x)*0.5f;
@@ -239,10 +166,30 @@ void collision(World* world,Player* player)
 
   correct(player,correction);
 }
-#pragma warning(pop)
+
+void update(World* world,Input* input,float dt)
+{
+  controller(input,&world->player,dt);
+  contain(world,&world->player);
+  controller(input,&world->camera,&world->player);
+}
+
+bool finish(World* world)
+{
+  v3 diff=world->goal_point-world->player.position;
+  float dist=length(diff);
+  if (dist<0.7f) {return true;}
+  return false;
+}
 
 void draw(World* world)
 {
+  bq_prepare3d();
+  bq_enable_fog({0,0,0,1},0.3f,1.0f,10.0f);
+  bq_projection(world->perspective);
+  bq_view(world->camera.view);
   bq_bind_texture(world->texture);
-  bq_render3d({1.0f,1.0f,1.0f,1.0f},world->mesh.count,world->mesh.positions,world->mesh.texcoords,nullptr);
+  bq_render3d({1.0f,1.0f,1.0f,1.0f},world->world.count,world->world.positions,world->world.texcoords,nullptr);
+  // objects
 }
+

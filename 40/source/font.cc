@@ -1,7 +1,5 @@
 // font.cc
 
-#include <string.h>
-
 struct Font
 {
   float width;
@@ -13,21 +11,24 @@ void init(Font* font)
 {
   font->width=3.0f;
   font->height=5.0f;
-  const float iw=1.0f/256.0f;
-  for (int i=0;i<64;i++)
+  const float iw=1.0f/64.0f;
+  for (int y=0,i=0;y<3;y++)
   {
-    font->glyphs[i]={font->width*i,251.0f};
-    font->glyphs[i].x*=iw;
-    font->glyphs[i].y*=iw;
+    for (int x=0;x<21;x++)
+    {
+      float s=(x*3.0f)*iw;
+      float t=(y*5.0f)*iw;
+      font->glyphs[i++]={s,t};
+    }
   }
 }
 
-void draw(Font* font,float x,float y,const char* str)
+void draw(Font* font,float x,float y,const v4 color,const char* str)
 {
   v2 p[1024];
   v2 t[1024];
   float ox=x,w=font->width,h=font->height;
-  float iw=w/256.0f,ih=h/256.0f;
+  float iw=w/64.0f,ih=h/64.0f;
   int len=(int)strlen(str),k=0;
   for (int i=0;i<len;i++)
   {
@@ -50,5 +51,5 @@ void draw(Font* font,float x,float y,const char* str)
 
     x+=w+1.0f;
   }
-  bq_render2d({0.1f,0.2f,0.3f,1.0f},k,p,t);
+  bq_render2d(color,k,p,t);
 }

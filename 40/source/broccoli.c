@@ -17,6 +17,7 @@
 #include <stdarg.h>
 #include <stdio.h>
 
+#if 0
 #pragma warning(push)
 #pragma warning(disable : 4456) // declaration of hides previous local declaration
 #define STB_IMAGE_STATIC
@@ -28,6 +29,7 @@
 #pragma warning(disable : 4701) // potentially uninitialized local variable used
 #include <stb_vorbis.h>
 #pragma warning(pop)
+#endif
 
 // globals
 static bool global_logging_active=false;
@@ -155,14 +157,16 @@ static LRESULT CALLBACK win_window_proc(HWND hWnd,UINT uMsg,WPARAM wParam,LPARAM
 int bq_init(const char* title,int width,int height)
 {
   bq__init_logging(true);
-  bq_log(":: boiling broccoli - it's healthy they say ::\n\n");
   bq_get_ticks();
+
+  bq_log("[init] broccoli\n");
+  bq_log("[init]   - because it's healthy\n");
   
   WNDCLASSA wc={0};
   wc.style=CS_OWNDC|CS_HREDRAW|CS_VREDRAW,
   wc.lpfnWndProc=win_window_proc;
   wc.hInstance=GetModuleHandle(NULL);
-  wc.lpszClassName="LDclassName";
+  wc.lpszClassName="broccoliClassName";
   wc.hCursor=LoadCursor(NULL,IDC_ARROW);
   wc.hbrBackground=CreateSolidBrush(0x00000000);
   wc.hIcon=LoadIcon(wc.hInstance,MAKEINTRESOURCE(101));
@@ -177,7 +181,7 @@ int bq_init(const char* title,int width,int height)
   RECT wr={0}; wr.right=width; wr.bottom=height;
   if (!AdjustWindowRect(&wr,ws,0)) 
   {
-    bq_log("error: adjust rect\n");
+    bq_log("[init] error: adjust rect\n");
     return 0;
   }
 
@@ -186,7 +190,7 @@ int bq_init(const char* title,int width,int height)
     wr.right-wr.left,wr.bottom-wr.top,0,0,wc.hInstance,0);
   if (!window) 
   {
-    bq_log("error: window\n");
+    bq_log("[init] error: window\n");
     return 0;
   }
 
@@ -205,18 +209,16 @@ int bq_init(const char* title,int width,int height)
   SetPixelFormat(device,ChoosePixelFormat(device,&pfd),&pfd);
   if (!wglMakeCurrent(device,wglCreateContext(device))) 
   {
-    bq_log("error: opengl create\n");
+    bq_log("[init] error: opengl create\n");
     return 0;
   }
 
-  bq_log("Screen\n");
-  bq_log("  Width:    %d\n",width);
-  bq_log("  Height:   %d\n",height);
-  bq_log("OpenGL\n");
-  bq_log("  Vendor:   %s\n",glGetString(GL_VENDOR));
-  bq_log("  Version:  %s\n",glGetString(GL_VERSION));
-  bq_log("  Renderer: %s\n",glGetString(GL_RENDERER));
-
+  bq_log("[init] screen - %dx%d\n",width,height);
+  bq_log("[init] opengl - %s %s %s\n",
+    glGetString(GL_VENDOR),
+    glGetString(GL_VERSION),
+    glGetString(GL_RENDERER));
+  
   glViewport(0,0,width,height);
   glMatrixMode(GL_PROJECTION);
   glLoadIdentity();
@@ -238,14 +240,14 @@ int bq_init(const char* title,int width,int height)
   hr=DirectSoundCreate(NULL,&dsound,NULL);
   if (FAILED(hr)) 
   {
-    bq_log("error: dsound create [%u]\n",hr);
+    bq_log("[init] error: dsound create [%u]\n",hr);
     return -1;
   }
 
   hr=dsound->lpVtbl->SetCooperativeLevel(dsound,window,DSSCL_PRIORITY);
   if (FAILED(hr)) 
   {
-    bq_log("error: dsound cooperative level [%u]\n",hr);
+    bq_log("[init] error: dsound cooperative level [%u]\n",hr);
     return -1;
   }
 
@@ -273,6 +275,8 @@ int bq_init(const char* title,int width,int height)
   global_sound_device=dsound;
   global_primary_buffer=primary;
   ShowWindow(window,SW_SHOWNORMAL);
+
+  bq_log("[init] ... ok!\n\n");
 
   return 1;
 }
@@ -320,6 +324,7 @@ int bq_create_texture(int width,int height,const void* data)
   return (int)id;
 }
 
+#if 0
 int bq_load_texture(const char* filename)
 {
   int width,height,c;
@@ -333,6 +338,7 @@ int bq_load_texture(const char* filename)
   stbi_image_free(bitmap);
   return result;
 }
+#endif
 
 void bq_destroy_texture(const int texture_id)
 {
@@ -436,6 +442,7 @@ int bq_create_sound(int channels,int samples,const void* data)
   return ((gen&0xffff)<<16)|(index&0xffff);
 }
 
+#if 0
 int bq_load_sound(const char* filename)
 {
   int num_channels=0,sample_rate=0;
@@ -445,6 +452,7 @@ int bq_load_sound(const char* filename)
   free(samples);
   return result;
 }
+#endif
 
 void bq_destroy_sound(const int id)
 {
@@ -652,6 +660,22 @@ void bq_render3d(const v4 color,int count,const v3* positions,const v2* texcoord
   //glNormalPointer(GL_FLOAT,sizeof(v3),normals);
   glDrawArrays(GL_TRIANGLES,0,count);
   //glDisableClientState(GL_NORMAL_ARRAY);
+}
+
+void bq_enable_fog(const v4 color,const float density,const float start,const float end)
+{
+  glEnable(GL_FOG);
+  glHint(GL_FOG_HINT,GL_DONT_CARE);
+  glFogfv(GL_FOG_COLOR,(const GLfloat*)&color);
+  glFogi(GL_FOG_MODE,GL_EXP2);
+  glFogf(GL_FOG_DENSITY,density);
+  glFogf(GL_FOG_START,start);
+  glFogf(GL_FOG_END,end);
+}
+
+void bq_disable_fog()
+{
+  glDisable(GL_FOG);
 }
 
 void bq_set_cursor(int state)

@@ -17,6 +17,11 @@ inline v3 operator+(const v3& l,const v3& r) {return {l.x+r.x,l.y+r.y,l.z+r.z};}
 inline v3 operator-(const v3& l,const v3& r) {return {l.x-r.x,l.y-r.y,l.z-r.z};}
 inline v3 operator*(const v3& l,const float r) {return {l.x*r,l.y*r,l.z*r};}
 
+inline float length(const v3 a)
+{
+  return sqrtf(a.x*a.x+a.y*a.y+a.z*a.z);
+}
+
 inline float dot(const v3 a,const v3 b)
 {
   return a.x*b.x+a.y*b.y+a.z*b.z;

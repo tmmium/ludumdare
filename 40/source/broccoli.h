@@ -22,12 +22,12 @@ BQ_API int  bq_get_ticks();
 BQ_API int  bq_init(const char* title,int width,int height);
 BQ_API int  bq_process();
 
-BQ_API int  bq_load_texture(const char* filename);
+//BQ_API int  bq_load_texture(const char* filename);
 BQ_API int  bq_create_texture(int width,int height,const void* data);
 BQ_API void bq_destroy_texture(const int texture_id);
 BQ_API void bq_bind_texture(const int texture_id);
 
-BQ_API int  bq_load_sound(const char* filename);
+//BQ_API int  bq_load_sound(const char* filename);
 BQ_API int  bq_create_sound(int channels,int samples,const void* data);
 BQ_API void bq_destroy_sound(const int sound_id);
 BQ_API void bq_play_sound(const int sound_id,float volume);
@@ -45,6 +45,9 @@ BQ_API void bq_render2d(const v4 color,int count,const v2* positions,const v2* t
 
 BQ_API void bq_prepare3d();
 BQ_API void bq_render3d(const v4 color,int count,const v3* positions,const v2* texcoords,const v3* normals);
+
+BQ_API void bq_enable_fog(const v4 color,const float density,const float start,const float end);
+BQ_API void bq_disable_fog();
 
 BQ_API void bq_set_cursor(int state);
 BQ_API void bq_center_cursor();
