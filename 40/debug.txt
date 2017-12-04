@@ -1,6 +1,6 @@
 [init] broccoli
 [init]   - because it's healthy
-[init] screen - 640x360
+[init] screen - 1280x720
 [init] opengl - NVIDIA Corporation 4.6.0 NVIDIA 388.13 GeForce GTX 1080/PCIe/SSE2
 [init] ... ok!
 
@@ -10,4 +10,7 @@
 [game] mesh: capacity 36
 [game] mesh: capacity 27
 [game] changing game state 'game_state_loading' -> 'game_state_start'
+[game] changing game state 'game_state_start' -> 'game_state_play'
+[game] changing game state 'game_state_play' -> 'game_state_end'
+[game] changing game state 'game_state_end' -> 'game_state_start'
 [config] saved

@@ -35,6 +35,14 @@ void create(Bitmap* bitmap,int width,int height)
   bitmap->data=(unsigned*)malloc(sizeof(unsigned)*width*height);
 }
 
+void destroy(Bitmap* bitmap)
+{
+  free(bitmap->data);
+  bitmap->width=0;
+  bitmap->height=0;
+  bitmap->data=NULL;
+}
+
 void clear(Bitmap* bitmap,unsigned color)
 {
   for (int y=0;y<bitmap->height;y++)

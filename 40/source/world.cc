@@ -4,9 +4,9 @@ struct World
 {
   v3 spawn;
   v3 finish;
-  Bitmap collision;
-  Bitmap bitmap;
   int texture;
+  Bitmap bitmap;
+  Bitmap collision;
   Mesh world_mesh;
   Mesh entity_mesh[4];
   int num_entities;
@@ -40,17 +40,16 @@ void reset(World* world)
   }
 }
 
-bool init(World* world,const char* filename,int screen_width,int screen_height)
+bool init(World* world,const char* texname,const char* mapname)
 {
   Bitmap bitmap;
-  if (!init(&bitmap,filename)) {return false;}
+  if (!init(&bitmap,texname)) {return false;}
   int texture=bq_create_texture(bitmap.width,bitmap.height,bitmap.data);
   if (texture==0) {return false;}
+  destroy(&bitmap);
 
   Bitmap collision;
-  collision.width=bitmap.width;
-  collision.height=bitmap.height>>1;
-  collision.data=bitmap.data+collision.width*collision.height;
+  if (!init(&collision,mapname)) {return false;}
 
   int num_tiles=0,num_entities=0;
   v3 spawn={},finish={};
@@ -242,10 +241,9 @@ void update(World* world,Player* player,const Audio* audio,float dt)
       {
         ent->active=false;
         player->score+=1;
-        if (player->score>10)
+        if (player->score>0&&player->score%20==0)
         {
           player->health++;
-          player->score=0;
           play(audio,SOUND_BONUS,0.15f);          
         }
         else 

@@ -19,7 +19,7 @@ bool init(Game* game,int width,int height)
   game->tick=bq_get_ticks();
 
   init(&game->input);
-  if (!init(&game->world,"assets/world.png",width,height))
+  if (!init(&game->world,"assets/material/main.png","assets/map/first.png"))
   {
     bq_log("[game] error: could not load world\n");
     return false;
@@ -69,7 +69,8 @@ static bool update_loading(Game* game)
 static bool update_start(Game* game)
 {  
   float x=game->gui.width*0.5f-25.0f;
-  if (button(&game->gui,game->input.left_button_once,{x,50,50,20},"PLAY"))
+  float y=game->gui.height*0.5f-10.0f;
+  if (button(&game->gui,game->input.left_button_once,{x,y,50,20},"PLAY"))
   {
     game->input.state=INPUT_STATE_CAMERA;
     game->input.is_cursor_visible=false;
@@ -79,15 +80,23 @@ static bool update_start(Game* game)
     change_state(game,GAME_STATE_PLAY);
     play(&game->audio,SOUND_SPAWN,0.15f);
   }
-  if (button(&game->gui,game->input.left_button_once,{x,80,50,20},"QUIT"))
+
+  if (button(&game->gui,game->input.left_button_once,{10,134,30,12},"EXIT"))
   {
     return false;
   }
 
-  static char text[64];
-  sprintf_s<64>(text,"MOUSE: %3.2f",game->input.sensitivity);
-  make_label(&game->gui,{32,163},{0.0f,0.0f,0.0f,1.0f},text);
-  make_label(&game->gui,{32,162},{1.0f,1.0f,1.0f,1.0f},text);
+  sprintf_s<32>(game->gui.label_mouse_inv_y,"INVERT Y      %s",game->input.inverse.y<0.0f?"TRUE":"FALSE");
+  make_label(&game->gui,{32,153},{0.0f,0.0f,0.0f,1.0f},game->gui.label_mouse_inv_y);
+  make_label(&game->gui,{32,152},{1.0f,1.0f,1.0f,1.0f},game->gui.label_mouse_inv_y);
+  if (button(&game->gui,game->input.left_button_once,{10,150,8,8},"+"))
+  {
+    game->input.inverse.y=-game->input.inverse.y;
+  }
+
+  sprintf_s<32>(game->gui.label_mouse_sens, "SENSITIVITY  %3.2f",game->input.sensitivity);
+  make_label(&game->gui,{32,163},{0.0f,0.0f,0.0f,1.0f},game->gui.label_mouse_sens);
+  make_label(&game->gui,{32,162},{1.0f,1.0f,1.0f,1.0f},game->gui.label_mouse_sens);
   if (button(&game->gui,game->input.left_button_once,{10,160,8,8},"+"))
   {
     game->input.sensitivity+=0.2f;
@@ -110,6 +119,16 @@ static bool update_play(Game* game)
   contain(&game->world,&game->player);
   controller(&game->input,&game->camera,&game->player);
 
+  if (game->input.is_cursor_visible)
+  {
+    float x=game->gui.width*0.5f-25.0f;
+    float y=game->gui.height*0.5f-10.0f;
+    if (button(&game->gui,game->input.left_button_once,{x,y,50,20},"QUIT"))
+    {
+      play(&game->audio,SOUND_DEAD,0.2f);
+      change_state(game,GAME_STATE_START);
+    }
+  }
   if (!is_alive(&game->player))
   {
     play(&game->audio,SOUND_DEAD,0.2f);
@@ -120,7 +139,7 @@ static bool update_play(Game* game)
   if (is_goal_reached(&game->world,&game->player))
   {
     play(&game->audio,SOUND_FINISH,0.1f);
-    init(&game->input);
+    //init(&game->input);
     bq_set_cursor(true);
     change_state(game,GAME_STATE_END);
   }
@@ -131,7 +150,7 @@ static bool update_play(Game* game)
 static bool update_end(Game* game)
 {
   float x=game->gui.width*0.5f-25.0f;
-  if (button(&game->gui,game->input.left_button_once,{x,140,50,20}, "RESTART"))
+  if (button(&game->gui,game->input.left_button_once,{x,140,50,20}, "QUIT"))
   {
     reset(&game->player,game->world.spawn);
     change_state(game,GAME_STATE_START);

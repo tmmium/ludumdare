@@ -26,6 +26,7 @@ static void save(const char* filename,Game* game)
   FILE* fout=fopen(filename,"wb");
   if (!fout) {return;}
   fwrite(&game->input.sensitivity,sizeof(float),1,fout);
+  fwrite(&game->input.inverse.y,sizeof(float),1,fout);
   fflush(fout);
   fclose(fout);
 }
@@ -35,6 +36,7 @@ static bool load(const char* filename,Game* game)
   FILE* fin=fopen(filename,"rb");
   if (!fin) {return false;}
   fread(&game->input.sensitivity,sizeof(float),1,fin);
+  fread(&game->input.inverse.y,sizeof(float),1,fin);
   fclose(fin);
   return true;
 }
@@ -43,7 +45,7 @@ int __stdcall WinMain(void*,void*,char*,int)
 {
   const int width=320,height=180;
 
-  if (!bq_init("LD40: \"The more you have, the worse it is...\"",640,360)) 
+  if (!bq_init("LD40: \"The more you have, the worse it is...\"",1280,720)) 
   {
     bq_log("[game] error: something bad happened, looks like you can't start consuming broccoli!");
     return -1;

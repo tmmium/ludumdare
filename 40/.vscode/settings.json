@@ -15,6 +15,7 @@
     "xmemory0": "cpp",
     "xstddef": "cpp",
     "xtr1common": "cpp",
-    "xlocnum": "c"
+    "xlocnum": "c",
+    "system_error": "cpp"
   }
 }

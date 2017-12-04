@@ -28,7 +28,7 @@ bool init(Audio* audio)
   char filename[256];
   for (int i=0;i<SOUND_COUNT;i++)
   {
-    sprintf_s<256>(filename,"assets/%s.ogg",sound_id_string((SoundID)i));
+    sprintf_s<256>(filename,"assets/audio/%s.ogg",sound_id_string((SoundID)i));
     audio->sounds[i]=bq_load_sound(filename);
     if (audio->sounds[i]==0) {return false;}
   }

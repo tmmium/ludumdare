@@ -91,8 +91,8 @@ float text_height(const Font* font,const char* str)
 v2 text_offset(const Font* font,const v2 dim,const char* text)
 {
   v2 res;
-  res.x=((dim.x-text_width(font,text))*0.5f);
-  res.y=((dim.y-text_height(font,text))*0.5f);
+  res.x=ceilf((dim.x-text_width(font,text))*0.5f);
+  res.y=ceilf((dim.y-text_height(font,text))*0.5f)+1.0f;
   return res;
 }
 

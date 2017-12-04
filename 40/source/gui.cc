@@ -59,6 +59,9 @@ struct GUI
   v2 minimap_position;
   int num_widgets;
   Widget widgets[64];
+
+  char label_mouse_sens[32];
+  char label_mouse_inv_y[32];
 };
 
 static void make_label(GUI* gui,const v2 position,const v4 color,const char* text)
@@ -266,7 +269,7 @@ bool button(GUI* gui,bool down,const v4 rect,const char* text)
 
   make_button(gui,position,state,sprite);
 
-  v2 offset=text_offset(&gui->font,{rect.z,rect.w},text);
+    v2 offset=text_offset(&gui->font,{rect.z,rect.w},text);
   make_label(gui,position+offset,{0.0f,0.0f,0.0f,1.0f},text);
 
   return inside&&state==BUTTON_DOWN;
