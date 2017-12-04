@@ -1,5 +1,7 @@
 // game.cc
 
+#define GAME_VERSION "V1.2.0"
+
 struct Game
 {
   GameState state;
@@ -110,6 +112,11 @@ static bool update_start(Game* game)
     }
   }
 
+  make_label(&game->gui,
+    {game->gui.width-text_width(&game->gui.font,GAME_VERSION),
+     game->gui.height-text_height(&game->gui.font,GAME_VERSION)},
+    {1.0f,1.0f,1.0f,1.0f},GAME_VERSION);
+
   return true;
 }
 
@@ -153,6 +160,7 @@ static bool update_end(Game* game)
   if (button(&game->gui,game->input.left_button_once,{x,140,50,20}, "QUIT"))
   {
     reset(&game->player,game->world.spawn);
+    controller(&game->input,&game->camera,&game->player);
     change_state(game,GAME_STATE_START);
   }
   return true;

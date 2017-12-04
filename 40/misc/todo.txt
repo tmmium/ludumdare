@@ -1,0 +1,28 @@
+# todo
+
+## .plan
+release game on itch.io, pay-what-you-want.  
+
+## backlog
+- rotate map to match level image
+- save to user folder (config.bin)
+- weapon, plasma pistol (fps hands, plasma bullets)
+- weapon sounds
+- ammo entity 
+- key entity
+- door entity
+- better collision map primitive
+- options screen
+  - mouse, volume 
+- enemies, two zombie like things (slow and fast?)
+- pathfinding for zombies
+- proper sound effects
+- background music
+- enemy sounds
+- enemy art, 3d or 2d?
+- bundle game assets (zip?) 
+- proper name for project!
+
+## in-progress
+
+## complete

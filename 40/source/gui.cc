@@ -196,8 +196,9 @@ void draw(GUI* gui,const Player* player,GameState state)
     draw_centered(&gui->font,{(float)gui->width,(float)gui->height},{0.0f,10.0f},{1.0f,1.0f,1.0f,1.0f},text);
   }
   
-  char text[64]={};
+  if (state==GAME_STATE_PLAY)
   {
+    char text[64]={};
     sprintf_s<64>(text,"%d",player->health);
     v2 o=gui->heart_position;
     o.x+=10.0f;
@@ -206,11 +207,9 @@ void draw(GUI* gui,const Player* player,GameState state)
     draw(&gui->font,{o.x,o.y+1},{0.0f,0.0f,0.0f,1.0f},text);
     draw(&gui->font,{o.x,o.y},{1.0f,1.0f,1.0f,1.0f},text);
     draw(&gui->heart,gui->heart_position,{1.0f,1.0f,1.0f,1.0f});
-  }
 
-  {
     sprintf_s<64>(text,"%d",player->score);
-    v2 o=gui->coin_position;
+    o=gui->coin_position;
     o.x+=10.0f;
     o.y+=1.0f;
 
@@ -218,6 +217,7 @@ void draw(GUI* gui,const Player* player,GameState state)
     draw(&gui->font,{o.x,o.y},{1.0f,1.0f,1.0f,1.0f},text);
     draw(&gui->coin,gui->coin_position,{1.0f,1.0f,1.0f,1.0f});
   }
+
   draw_widgets(gui,state);
 }
 
