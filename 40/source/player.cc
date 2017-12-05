@@ -26,7 +26,7 @@ void correct(Player* player,v3 offset)
 void reset(Player* player,v3 position)
 {
   player->score=0;
-  player->health=8;
+  player->health=3;
 
   player->timer=0.0f;
   player->y_bob=0.0f;
@@ -79,8 +79,7 @@ void rotate_y(Player* player,float amount)
 
 void take_damage(Player* player)
 {
-  int damage=(player->score+2)/2;
-  player->health-=damage;
+  player->health--;
 }
 
 bool is_alive(const Player* player)

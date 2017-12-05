@@ -54,19 +54,8 @@ bool is_wall(const Bitmap* bitmap,const int x,const int y)
   return pixel_at(bitmap,x,y)==0xff000000;
 }
 
-void build_spawn_mesh(Mesh* mesh)
+void build_cube_mesh(Mesh* mesh,const v4 top,const v4 sides,const v3 min,const v3 max)
 {
-  const v4 uvs[]=
-  {
-    //      0,    32,       14,    48,  TOP/BOTTOM
-    0.000f   ,0.250f,0.109375f,0.375f,
-    //     14,    32,       16,    48,  SIDES
-    0.109375f,0.250f,   0.125f,0.375f,
-  };
-
-  const float Q=0.3f;
-  const v3 min={-Q,0.00f,-Q};
-  const v3 max={ Q,0.05f, Q};
   const v3 cube[8]=
   {
     { min.x, max.y, min.z },
@@ -82,80 +71,48 @@ void build_spawn_mesh(Mesh* mesh)
 
   // top
   push(mesh->positions+mesh->count,cube[1],cube[0],cube[4],cube[5]);
-  push(mesh->texcoords+mesh->count,{uvs[0].x,uvs[0].y},{uvs[0].z,uvs[0].w}); 
+  push(mesh->texcoords+mesh->count,{top.x,top.y},{top.z,top.w}); 
   mesh->count+=6;
   // bottom  
   push(mesh->positions+mesh->count,cube[2],cube[3],cube[7],cube[6]);
-  push(mesh->texcoords+mesh->count,{uvs[0].x,uvs[0].y},{uvs[0].z,uvs[0].w}); 
+  push(mesh->texcoords+mesh->count,{top.x,top.y},{top.z,top.w}); 
   mesh->count+=6;
   // north
   push(mesh->positions+mesh->count,cube[0],cube[1],cube[2],cube[3]);
-  push(mesh->texcoords+mesh->count,{uvs[1].x,uvs[1].y},{uvs[1].z,uvs[1].w});
+  push(mesh->texcoords+mesh->count,{sides.x,sides.y},{sides.z,sides.w});
   mesh->count+=6;
   // south
   push(mesh->positions+mesh->count,cube[4],cube[5],cube[6],cube[7]);
-  push(mesh->texcoords+mesh->count,{uvs[1].x,uvs[1].y},{uvs[1].z,uvs[1].w});
+  push(mesh->texcoords+mesh->count,{sides.x,sides.y},{sides.z,sides.w});
   mesh->count+=6;
   // east 
   push(mesh->positions+mesh->count,cube[4],cube[0],cube[3],cube[7]);
-  push(mesh->texcoords+mesh->count,{uvs[1].x,uvs[1].y},{uvs[1].z,uvs[1].w});
+  push(mesh->texcoords+mesh->count,{sides.x,sides.y},{sides.z,sides.w});
   mesh->count+=6;
   // west
   push(mesh->positions+mesh->count,cube[1],cube[5],cube[6],cube[2]);
-  push(mesh->texcoords+mesh->count,{uvs[1].x,uvs[1].y},{uvs[1].z,uvs[1].w});
+  push(mesh->texcoords+mesh->count,{sides.x,sides.y},{sides.z,sides.w});
   mesh->count+=6;
+}
+
+void build_spawn_mesh(Mesh* mesh)
+{
+  const v4 top=uvcoords({0.000f,0.250f,0.109375f,0.375f},1.0f);
+  const v4 sides=uvcoords({0.109375f,0.250f,0.125f,0.375f},1.0f);
+  const float Q=0.3f;
+  const v3 min={-Q,0.00f,-Q};
+  const v3 max={ Q,0.05f, Q};
+  build_cube_mesh(mesh,top,sides,min,max);
 }
 
 void build_finish_mesh(Mesh* mesh)
 {
-  v4 uvs[]=
-  {
-    16.f,32.f,30.f,48.f,
-    30.f,32.f,32.f,48.f,
-  };
-  for (int i=0;i<2;i++)
-    uvs[i]=uvs[i]/128.0f;
-
+  v4 top=uvcoords({16.f,32.f,30.f,48.f},1.0f/128.0f);
+  v4 sides=uvcoords({30.f,32.f,32.f,48.f},1.0f/128.0f);
   const float Q=0.3f;
   const v3 min={-Q,0.00f,-Q};
   const v3 max={ Q,0.05f, Q};
-  const v3 cube[8]=
-  {
-    { min.x, max.y, min.z },
-    { max.x, max.y, min.z },
-    { max.x, min.y, min.z },
-    { min.x, min.y, min.z },
-
-    { min.x, max.y, max.z },
-    { max.x, max.y, max.z },
-    { max.x, min.y, max.z },
-    { min.x, min.y, max.z },
-  };
-
-  // top
-  push(mesh->positions+mesh->count,cube[1],cube[0],cube[4],cube[5]);
-  push(mesh->texcoords+mesh->count,{uvs[0].x,uvs[0].y},{uvs[0].z,uvs[0].w}); 
-  mesh->count+=6;
-  // bottom  
-  push(mesh->positions+mesh->count,cube[2],cube[3],cube[7],cube[6]);
-  push(mesh->texcoords+mesh->count,{uvs[0].x,uvs[0].y},{uvs[0].z,uvs[0].w}); 
-  mesh->count+=6;
-  // north
-  push(mesh->positions+mesh->count,cube[0],cube[1],cube[2],cube[3]);
-  push(mesh->texcoords+mesh->count,{uvs[1].x,uvs[1].y},{uvs[1].z,uvs[1].w});
-  mesh->count+=6;
-  // south
-  push(mesh->positions+mesh->count,cube[4],cube[5],cube[6],cube[7]);
-  push(mesh->texcoords+mesh->count,{uvs[1].x,uvs[1].y},{uvs[1].z,uvs[1].w});
-  mesh->count+=6;
-  // east 
-  push(mesh->positions+mesh->count,cube[4],cube[0],cube[3],cube[7]);
-  push(mesh->texcoords+mesh->count,{uvs[1].x,uvs[1].y},{uvs[1].z,uvs[1].w});
-  mesh->count+=6;
-  // west
-  push(mesh->positions+mesh->count,cube[1],cube[5],cube[6],cube[2]);
-  push(mesh->texcoords+mesh->count,{uvs[1].x,uvs[1].y},{uvs[1].z,uvs[1].w});
-  mesh->count+=6;
+  build_cube_mesh(mesh,top,sides,min,max);
 }
 
 void build_pickup_mesh(Mesh* mesh)

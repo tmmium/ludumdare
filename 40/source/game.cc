@@ -5,6 +5,8 @@
 struct Game
 {
   GameState state;
+  int width;
+  int height;
   unsigned tick;
   float dt;
   Input input;
@@ -18,6 +20,8 @@ struct Game
 bool init(Game* game,int width,int height)
 {
   game->state=GAME_STATE_LOADING;
+  game->width=width;
+  game->height=height;
   game->tick=bq_get_ticks();
 
   init(&game->input);
@@ -70,8 +74,8 @@ static bool update_loading(Game* game)
 
 static bool update_start(Game* game)
 {  
-  float x=game->gui.width*0.5f-25.0f;
-  float y=game->gui.height*0.5f-10.0f;
+  float x=game->width*0.5f-25.0f;
+  float y=game->height*0.5f-10.0f;
   if (button(&game->gui,game->input.left_button_once,{x,y,50,20},"PLAY"))
   {
     game->input.state=INPUT_STATE_CAMERA;
@@ -83,27 +87,27 @@ static bool update_start(Game* game)
     play(&game->audio,SOUND_SPAWN,0.15f);
   }
 
-  if (button(&game->gui,game->input.left_button_once,{10,134,30,12},"EXIT"))
+  if (button(&game->gui,game->input.left_button_once,{10,314,30,12},"EXIT"))
   {
     return false;
   }
 
   sprintf_s<32>(game->gui.label_mouse_inv_y,"INVERT Y      %s",game->input.inverse.y<0.0f?"TRUE":"FALSE");
-  make_label(&game->gui,{32,153},{0.0f,0.0f,0.0f,1.0f},game->gui.label_mouse_inv_y);
-  make_label(&game->gui,{32,152},{1.0f,1.0f,1.0f,1.0f},game->gui.label_mouse_inv_y);
-  if (button(&game->gui,game->input.left_button_once,{10,150,8,8},"+"))
+  make_label(&game->gui,{32,335},{0.0f,0.0f,0.0f,1.0f},game->gui.label_mouse_inv_y);
+  make_label(&game->gui,{32,334},{1.0f,1.0f,1.0f,1.0f},game->gui.label_mouse_inv_y);
+  if (button(&game->gui,game->input.left_button_once,{10,330,8,8},"+"))
   {
     game->input.inverse.y=-game->input.inverse.y;
   }
 
   sprintf_s<32>(game->gui.label_mouse_sens, "SENSITIVITY  %3.2f",game->input.sensitivity);
-  make_label(&game->gui,{32,163},{0.0f,0.0f,0.0f,1.0f},game->gui.label_mouse_sens);
-  make_label(&game->gui,{32,162},{1.0f,1.0f,1.0f,1.0f},game->gui.label_mouse_sens);
-  if (button(&game->gui,game->input.left_button_once,{10,160,8,8},"+"))
+  make_label(&game->gui,{32,343},{0.0f,0.0f,0.0f,1.0f},game->gui.label_mouse_sens);
+  make_label(&game->gui,{32,342},{1.0f,1.0f,1.0f,1.0f},game->gui.label_mouse_sens);
+  if (button(&game->gui,game->input.left_button_once,{10,340,8,8},"+"))
   {
     game->input.sensitivity+=0.2f;
   }
-  if (button(&game->gui,game->input.left_button_once,{22,160,8,8},"-"))
+  if (button(&game->gui,game->input.left_button_once,{22,340,8,8},"-"))
   {
     game->input.sensitivity-=0.2f;
     if (game->input.sensitivity<0.2f) 
@@ -133,6 +137,8 @@ static bool update_play(Game* game)
     if (button(&game->gui,game->input.left_button_once,{x,y,50,20},"QUIT"))
     {
       play(&game->audio,SOUND_DEAD,0.2f);
+      reset(&game->player,game->world.spawn);
+      controller(&game->input,&game->camera,&game->player);
       change_state(game,GAME_STATE_START);
     }
   }
@@ -156,8 +162,9 @@ static bool update_play(Game* game)
 
 static bool update_end(Game* game)
 {
-  float x=game->gui.width*0.5f-25.0f;
-  if (button(&game->gui,game->input.left_button_once,{x,140,50,20}, "QUIT"))
+  float x=game->width*0.5f-25.0f;
+  float y=game->height*0.5f-10.0f;
+  if (button(&game->gui,game->input.left_button_once,{x,y,50,20}, "QUIT"))
   {
     reset(&game->player,game->world.spawn);
     controller(&game->input,&game->camera,&game->player);

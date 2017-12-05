@@ -3,9 +3,30 @@
 ## .plan
 release game on itch.io, pay-what-you-want.  
 
+## ideas
+- 128x128 default props
+  - 2 tiles, 32x64 exit portal 
+  - 2 tiles, 32x64 teleport portal
+  - 2 tiles, 32x64 ammo cube
+  - 2 tiles, 32x64 health cube
+  - 2 tiles, 32x64 door 
+  - 1 tile, 32x32 key 
+  - 1 tile, 32x32 projectile
+  - 4 unused, 32x32
+- 128x128 environment texture (32x32)
+  - 4 floor tiles
+  - 4 wall tiles
+  - 4 roof tiles
+  - 4 grass/stone/rubbel/... tiles
+- 128x128 weapon texture
+- 128x128 enemy texture(s)
+
 ## backlog
 - rotate map to match level image
-- save to user folder (config.bin)
+- save text config
+- save to user folder in documents (config.bin)
+- proper exit portal
+- different input schemes (arrow keys, wasd, german-wasd, french-wasd)
 - weapon, plasma pistol (fps hands, plasma bullets)
 - weapon sounds
 - ammo entity 
@@ -20,9 +41,13 @@ release game on itch.io, pay-what-you-want.
 - background music
 - enemy sounds
 - enemy art, 3d or 2d?
+- teleports?
 - bundle game assets (zip?) 
 - proper name for project!
+- better gui management?
 
 ## in-progress
 
 ## complete
+- remove start portal
+- refactor mesh builder (for cubes)

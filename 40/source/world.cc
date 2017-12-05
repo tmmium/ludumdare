@@ -64,7 +64,7 @@ bool init(World* world,const char* texname,const char* mapname)
       num_tiles++;
       if (is_entity_type(pixel,ENTITY_SPAWN)) 
       {
-        num_entities++;
+        //num_entities++;
         spawn={(float)x+0.5f,0.0f,(float)y+0.5f};
       }
       else if (is_entity_type(pixel,ENTITY_FINISH))
@@ -113,8 +113,8 @@ bool init(World* world,const char* texname,const char* mapname)
 
       if (is_entity_type(pixel,ENTITY_SPAWN)) 
       {
-        init(world->entities+world->num_entities,ENTITY_SPAWN,{x+0.5f,0.0f,y+0.5f});
-        world->num_entities++;
+        //init(world->entities+world->num_entities,ENTITY_SPAWN,{x+0.5f,0.0f,y+0.5f});
+        //world->num_entities++;
       }
       else if (is_entity_type(pixel,ENTITY_FINISH))
       {

@@ -63,6 +63,10 @@ inline v3 transform_normal(const m4& m,const v3& v)
 
 inline v4 operator*(const v4& l,const float r) {return {l.x*r,l.y*r,l.z*r,l.w*r};}
 inline v4 operator/(const v4& l,const float r) {return {l.x/r,l.y/r,l.z/r,l.w/r};}
+inline v4 uvcoords(const v4 uv,const float scale)
+{
+  return uv*scale;
+}
 
 inline m4 rotate(const v3& axis,const float radians)
 {

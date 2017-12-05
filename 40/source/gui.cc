@@ -133,9 +133,9 @@ bool init(GUI* gui,const char* filename,int width,int height)
   create(&gui->minimap,16,16);
   gui->mini_texture=bq_create_texture(16,16,NULL);
   init(&gui->minisprite,&gui->minimap,0,0,16,16);
-  gui->minisprite.dim.x*=2.0f;
-  gui->minisprite.dim.y*=2.0f;
-  gui->minimap_position={286.0f,2.0f};
+  gui->minisprite.dim.x*=4.0f;
+  gui->minisprite.dim.y*=4.0f;
+  gui->minimap_position={width-70.0f,4.0f};
 
   gui->num_widgets=0;
   
@@ -189,11 +189,16 @@ void draw(GUI* gui,const Player* player,GameState state)
 
   if (state==GAME_STATE_END)
   {
-    draw_centered(&gui->font,{(float)gui->width,(float)gui->height},{},{1.0f,1.0f,1.0f,1.0f},"GAME OVER");
+    const char* game_over_text="GAME OVER";
+    float x=(gui->width-text_width(&gui->font,game_over_text))*0.5f;
+    float y=(gui->height-text_height(&gui->font,game_over_text))*0.5f-30.0f;
+    draw(&gui->font,{x,y+1.0f},{0.0f,0.0f,0.0f,1.0f},game_over_text);
+    draw(&gui->font,{x,y},{1.0f,1.0f,1.0f,1.0f},game_over_text);
 
     char text[64]={};
     sprintf_s<64>(text,"SCORE: %d",calculate_score(player));
-    draw_centered(&gui->font,{(float)gui->width,(float)gui->height},{0.0f,10.0f},{1.0f,1.0f,1.0f,1.0f},text);
+    draw(&gui->font,{x,y+11.0f},{0.0f,0.0f,0.0f,1.0f},text);
+    draw(&gui->font,{x,y+10.0f},{1.0f,1.0f,1.0f,1.0f},text);
   }
   
   if (state==GAME_STATE_PLAY)
@@ -228,7 +233,7 @@ static void draw_debug_info(Font* font,Input* input,Player* player)
     player->position.x,
     player->position.z,
     player->y_bob);
-  draw(font,{2.0f,170.0f},{0.0f,0.0f,0.0f,1.0f},msg);
+  draw(font,{2.0f,350.0f},{0.0f,0.0f,0.0f,1.0f},msg);
 }
 
 static bool overlap2(const v2 position,const v4 rect)

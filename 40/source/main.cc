@@ -43,7 +43,7 @@ static bool load(const char* filename,Game* game)
 
 int __stdcall WinMain(void*,void*,char*,int)
 {
-  const int width=320,height=180;
+  const int width=640,height=360;
 
   if (!bq_init("LD40: \"The more you have, the worse it is...\"",1280,720)) 
   {
