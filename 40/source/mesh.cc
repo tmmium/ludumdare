@@ -117,74 +117,42 @@ void build_finish_mesh(Mesh* mesh)
 
 void build_pickup_mesh(Mesh* mesh)
 {
-  v4 uvs[]=
-  {
-    32.f,32.f,46.f,48.f,
-    46.f,32.f,48.f,48.f,
-  };
-  for (int i=0;i<2;i++)
-    uvs[i]=uvs[i]/128.0f;
-
+  const v4 top=uvcoords({32.f,32.f,46.f,48.f},1.0f/128.0f);
+  const v4 sides=uvcoords({46.f,32.f,48.f,48.f},1.0f/128.0f);
   const float Q=0.1f;
   const v3 min={-Q,-Q,-Q*0.2f};
   const v3 max={ Q, Q, Q*0.2f};
-  const v3 cube[8]=
-  {
-    { min.x, max.y, min.z },
-    { max.x, max.y, min.z },
-    { max.x, min.y, min.z },
-    { min.x, min.y, min.z },
+  build_cube_mesh(mesh,top,sides,min,max);
+}
 
-    { min.x, max.y, max.z },
-    { max.x, max.y, max.z },
-    { max.x, min.y, max.z },
-    { min.x, min.y, max.z },
-  };
-
-  // top
-  push(mesh->positions+mesh->count,cube[1],cube[0],cube[4],cube[5]);
-  push(mesh->texcoords+mesh->count,{uvs[1].x,uvs[1].y},{uvs[1].z,uvs[1].w}); 
-  mesh->count+=6;
-  // bottom  
-  push(mesh->positions+mesh->count,cube[2],cube[3],cube[7],cube[6]);
-  push(mesh->texcoords+mesh->count,{uvs[1].x,uvs[1].y},{uvs[1].z,uvs[1].w}); 
-  mesh->count+=6;
-  // north
-  push(mesh->positions+mesh->count,cube[0],cube[1],cube[2],cube[3]);
-  push(mesh->texcoords+mesh->count,{uvs[0].x,uvs[0].y},{uvs[0].z,uvs[0].w});
-  mesh->count+=6;
-  // south
-  push(mesh->positions+mesh->count,cube[4],cube[5],cube[6],cube[7]);
-  push(mesh->texcoords+mesh->count,{uvs[0].x,uvs[0].y},{uvs[0].z,uvs[0].w});
-  mesh->count+=6;
-  // east 
-  push(mesh->positions+mesh->count,cube[4],cube[0],cube[3],cube[7]);
-  push(mesh->texcoords+mesh->count,{uvs[1].x,uvs[1].y},{uvs[1].z,uvs[1].w});
-  mesh->count+=6;
-  // west
-  push(mesh->positions+mesh->count,cube[1],cube[5],cube[6],cube[2]);
-  push(mesh->texcoords+mesh->count,{uvs[1].x,uvs[1].y},{uvs[1].z,uvs[1].w});
-  mesh->count+=6;
+void build_pyramid_mesh(Mesh* mesh,const v2* uvs,const v3* corners,const v3 offset={0.0f,0.0f,0.0f})
+{
+  push3(mesh->positions+mesh->count,corners[0]+offset,corners[1]+offset,corners[2]+offset);
+  push3(mesh->texcoords+mesh->count,uvs[0],uvs[1],uvs[2]);
+  mesh->count+=3;
+  push3(mesh->positions+mesh->count,corners[0]+offset,corners[2]+offset,corners[3]+offset);
+  push3(mesh->texcoords+mesh->count,uvs[0],uvs[1],uvs[2]);
+  mesh->count+=3;
+  push3(mesh->positions+mesh->count,corners[0]+offset,corners[3]+offset,corners[1]+offset);
+  push3(mesh->texcoords+mesh->count,uvs[0],uvs[1],uvs[2]);
+  mesh->count+=3;
 }
 
 void build_spike_mesh(Mesh* mesh)
 {
-  v2 uvs[]=
+  const v2 uvs[3]=
   {
-    55.5f,32.f,
-    63.f,47.f,
-    48.f,47.f,
+    uvcoord({55.5f,32.0f},1.0f/128.0f),
+    uvcoord({63.0f,47.0f},1.0f/128.0f),
+    uvcoord({48.0f,47.0f},1.0f/128.0f),
   };
-  for (int i=0;i<6;i++)
-    uvs[i]=uvs[i]/128.0f;
-
-  const v3 offsets[3]=
+  const v3 offset[3]=
   {
     {  0.0f, 0.0f, 0.15f},
     { 0.15f, 0.0f,-0.15f},
     {-0.15f, 0.0f,-0.15f},
   };
-  const v3 cube[4]=
+  const v3 corners[4]=
   {
     { 0.0f, 0.3f, 0.0f },
     { 0.0f, 0.0f, 0.1f },
@@ -194,20 +162,13 @@ void build_spike_mesh(Mesh* mesh)
 
   for (int i=0;i<3;i++)
   {
-    push3(mesh->positions+mesh->count,cube[0]+offsets[i],cube[1]+offsets[i],cube[2]+offsets[i]);
-    push3(mesh->texcoords+mesh->count,uvs[0],uvs[1],uvs[2]);
-    mesh->count+=3;
-    push3(mesh->positions+mesh->count,cube[0]+offsets[i],cube[2]+offsets[i],cube[3]+offsets[i]);
-    push3(mesh->texcoords+mesh->count,uvs[0],uvs[1],uvs[2]);
-    mesh->count+=3;
-    push3(mesh->positions+mesh->count,cube[0]+offsets[i],cube[3]+offsets[i],cube[1]+offsets[i]);
-    push3(mesh->texcoords+mesh->count,uvs[0],uvs[1],uvs[2]);
-    mesh->count+=3;
+    build_pyramid_mesh(mesh,uvs,corners,offset[i]);
   }
 }
 
 void build_world_mesh(Mesh* mesh,const Bitmap* bitmap)
 {
+  // todo: calculate 4x4 matrix of uvs
   const v4 uvs[]=
   {
     0.00f,0.0f, 0.25f,0.25f, // floor

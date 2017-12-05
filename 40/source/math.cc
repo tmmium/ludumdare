@@ -13,10 +13,15 @@ inline v2 operator+(const v2& l,const v2& r) {return {l.x+r.x,l.y+r.y};}
 inline v2 operator-(const v2& l,const v2& r) {return {l.x-r.x,l.y-r.y};}
 inline v2 operator*(const v2& l,const float r) {return {l.x*r,l.y*r};}
 inline v2 operator/(const v2& l,const float r) {return {l.x/r,l.y/r};}
+inline v2 uvcoord(const v2 uv,const float scale)
+{
+  return uv*scale;
+}
 
 inline v3 operator+(const v3& l,const v3& r) {return {l.x+r.x,l.y+r.y,l.z+r.z};}
 inline v3 operator-(const v3& l,const v3& r) {return {l.x-r.x,l.y-r.y,l.z-r.z};}
 inline v3 operator*(const v3& l,const float r) {return {l.x*r,l.y*r,l.z*r};}
+inline v3 operator/(const v3& l,const float r) {return {l.x/r,l.y/r,l.z/r};}
 
 inline float length(const v3 a)
 {
