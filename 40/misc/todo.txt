@@ -1,9 +1,11 @@
 # todo
 
-## .plan
+## plan
 release game on itch.io, pay-what-you-want.  
 
 ## ideas
+- story mode
+- survival mode (randomly generated levels)
 - 128x128 default props
   - 2 tiles, 32x64 exit portal 
   - 2 tiles, 32x64 teleport portal
@@ -20,6 +22,9 @@ release game on itch.io, pay-what-you-want.
   - 4 grass/stone/rubbel/... tiles
 - 128x128 weapon texture
 - 128x128 enemy texture(s)
+- how to handle teleports?
+  - teleports map 1-to-1, same color, jump between them
+
 
 ## backlog
 - rotate map to match level image
