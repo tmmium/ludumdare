@@ -1,5 +1,6 @@
 // entity.cc
 
+// todo: union for entity types
 enum EntityType
 {
   ENTITY_SPAWN,
@@ -13,8 +14,9 @@ enum EntityType
 struct Entity
 {
   EntityType type;
-  bool active;
   v3 position;
+  bool active;
+  // union 
   float timer;
   float y_bob;
   bool triggered;

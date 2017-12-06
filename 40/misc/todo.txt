@@ -1,7 +1,7 @@
 # todo
 
 ## plan
-release game on itch.io, pay-what-you-want.  
+release game on itch.io, with a pay-what-you-want price tag.  
 
 ## ideas
 - story mode
@@ -9,24 +9,24 @@ release game on itch.io, pay-what-you-want.
 - 128x128 default props
   - 2 tiles, 32x64 exit portal 
   - 2 tiles, 32x64 teleport portal
+  - 2 tiles, 32x64 door 
   - 2 tiles, 32x64 ammo cube
   - 2 tiles, 32x64 health cube
-  - 2 tiles, 32x64 door 
   - 1 tile, 32x32 key 
-  - 1 tile, 32x32 projectile
-  - 4 unused, 32x32
+  - 5 unused, 32x32
 - 128x128 environment texture (32x32)
   - 4 floor tiles
   - 4 wall tiles
   - 4 roof tiles
   - 4 grass/stone/rubbel/... tiles
-- 128x128 weapon texture
+- 128x128 weapon and projectile texture
 - 128x128 enemy texture(s)
 - how to handle teleports?
   - teleports map 1-to-1, same color, jump between them
 
 
 ## backlog
+- refactor to use textures like described in ideas
 - rotate map to match level image
 - save text config
 - save to user folder in documents (config.bin)

@@ -17,6 +17,8 @@ struct Bitmap
 
 bool init(Bitmap* bitmap,const char* filename)
 {
+  // todo: same as audio, load all bitmaps at startup
+  //       its not that many, really
   int width,height,c;
   stbi_uc* data=stbi_load(filename,&width,&height,&c,4);
   if (!data) {return false;}

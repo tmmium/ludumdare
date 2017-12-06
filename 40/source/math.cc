@@ -73,6 +73,36 @@ inline v4 uvcoords(const v4 uv,const float scale)
   return uv*scale;
 }
 
+inline m4 operator*(const m4& a, const m4& b)
+{
+  m4 res;
+  res.x.x=a.x.x*b.x.x+a.x.y*b.y.x+a.x.z*b.z.x+a.x.w*b.w.z;
+  res.x.y=a.x.x*b.x.y+a.x.y*b.y.y+a.x.z*b.z.y+a.x.w*b.w.y;
+  res.x.z=a.x.x*b.x.z+a.x.y*b.y.z+a.x.z*b.z.z+a.x.w*b.w.z;
+  res.x.w=a.x.x*b.x.w+a.x.y*b.y.w+a.x.z*b.z.w+a.x.w*b.w.w;
+  res.y.x=a.y.z*b.x.x+a.y.y*b.y.x+a.y.z*b.z.x+a.y.w*b.w.z;
+  res.y.y=a.y.z*b.x.y+a.y.y*b.y.y+a.y.z*b.z.y+a.y.w*b.w.y;
+  res.y.z=a.y.z*b.x.z+a.y.y*b.y.z+a.y.z*b.z.z+a.y.w*b.w.z;
+  res.y.w=a.y.z*b.x.w+a.y.y*b.y.w+a.y.z*b.z.w+a.y.w*b.w.w;
+  res.z.x=a.z.x*b.x.x+a.z.y*b.y.x+a.z.z*b.z.x+a.z.w*b.w.z;
+  res.z.y=a.z.x*b.x.y+a.z.y*b.y.y+a.z.z*b.z.y+a.z.w*b.w.y;
+  res.z.z=a.z.x*b.x.z+a.z.y*b.y.z+a.z.z*b.z.z+a.z.w*b.w.z;
+  res.z.w=a.z.x*b.x.w+a.z.y*b.y.w+a.z.z*b.z.w+a.z.w*b.w.w;
+  res.w.x=a.w.x*b.x.x+a.w.y*b.y.x+a.w.z*b.z.x+a.w.w*b.w.z;
+  res.w.y=a.w.x*b.x.y+a.w.y*b.y.y+a.w.z*b.z.y+a.w.w*b.w.y;
+  res.w.z=a.w.x*b.x.z+a.w.y*b.y.z+a.w.z*b.z.z+a.w.w*b.w.z;
+  res.w.w=a.w.x*b.x.w+a.w.y*b.y.w+a.w.z*b.z.w+a.w.w*b.w.w;
+  return res;
+}
+inline m4 translate(const v3& position)
+{
+  m4 res=bq_identity();
+  res.w.x=position.x;
+  res.w.y=position.y;
+  res.w.z=position.z;
+  return res;
+}
+
 inline m4 rotate(const v3& axis,const float radians)
 {
   const float c=cosf(radians);

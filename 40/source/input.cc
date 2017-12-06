@@ -88,6 +88,7 @@ void process(Input* input,GameState state)
   }
 }
 
+// todo: move to player.cc
 void controller(Input* input,Player* player,const Audio* audio,float dt)
 {
   if (input->state!=INPUT_STATE_CAMERA) {return;}
@@ -148,7 +149,8 @@ void controller(Input* input,Player* player,const Audio* audio,float dt)
   player->axis[2]=z;
 }
 
-void controller(Input* input,Camera* camera,Player* player)
+// todo: move to camera.cc
+void controller(Input* input,Camera* camera,const Player* player)
 {
   camera->radians[0]=player->radians[0];
   camera->radians[1]=player->radians[1];

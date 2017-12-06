@@ -13,4 +13,7 @@
 [game] changing game state 'game_state_start' -> 'game_state_play'
 [game] changing game state 'game_state_play' -> 'game_state_end'
 [game] changing game state 'game_state_end' -> 'game_state_start'
+[game] changing game state 'game_state_start' -> 'game_state_play'
+[game] changing game state 'game_state_play' -> 'game_state_end'
+[game] changing game state 'game_state_end' -> 'game_state_start'
 [config] saved

@@ -55,6 +55,8 @@ BQ_API void bq_disable_fog();
 BQ_API void bq_set_cursor(int state);
 BQ_API void bq_center_cursor();
 
+// todo: mouse_position should be relative to window
+// todo: mouse_position (as now) should be mouse_location or something
 BQ_API v2   bq_mouse_position();
 BQ_API int  bq_mouse_button(int index);
 BQ_API int  bq_keyboard(int index);
