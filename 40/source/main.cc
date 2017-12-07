@@ -13,33 +13,14 @@
 #include "font.cc"
 #include "sprite.cc"
 #include "camera.cc"
+#include "input.cc"
+#include "audio.cc"
 #include "player.cc"
 #include "entity.cc"
-#include "audio.cc"
-#include "input.cc"
 #include "world.cc"
 #include "gui.cc"
 #include "game.cc"
-
-static void save(const char* filename,Game* game)
-{
-  FILE* fout=fopen(filename,"wb");
-  if (!fout) {return;}
-  fwrite(&game->input.sensitivity,sizeof(float),1,fout);
-  fwrite(&game->input.inverse.y,sizeof(float),1,fout);
-  fflush(fout);
-  fclose(fout);
-}
-
-static bool load(const char* filename,Game* game)
-{
-  FILE* fin=fopen(filename,"rb");
-  if (!fin) {return false;}
-  fread(&game->input.sensitivity,sizeof(float),1,fin);
-  fread(&game->input.inverse.y,sizeof(float),1,fin);
-  fclose(fin);
-  return true;
-}
+#include "editor.cc"
 
 int __stdcall WinMain(void*,void*,char*,int)
 {
@@ -54,19 +35,11 @@ int __stdcall WinMain(void*,void*,char*,int)
   Game* game=(Game*)malloc(sizeof(Game));
   if (!init(game,width,height)) {return -1;}
 
-  if (!load("assets/config.bin",game)) 
-  {
-    bq_log("[config] file not found\n");
-  }
-
   while(bq_process())
   {
     if (!update(game)) {break;}
     draw(game);
   }
-
-  save("assets/config.bin",game);
-  bq_log("[config] saved\n");
-
+  
   return 0;
 }

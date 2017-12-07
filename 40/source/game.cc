@@ -10,44 +10,15 @@ struct Game
   unsigned tick;
   float dt;
   Input input;
-  World world;
-  GUI gui;
+  MeshCache mesh_cache;
   Audio audio;
+  GUI gui;
+  World world;
   Camera camera;
   Player player;
 };
 
-bool init(Game* game,int width,int height)
-{
-  game->state=GAME_STATE_LOADING;
-  game->width=width;
-  game->height=height;
-  game->tick=bq_get_ticks();
-
-  init(&game->input);
-  if (!init(&game->world,"assets/material/main.png","assets/map/first.png"))
-  {
-    bq_log("[game] error: could not load world\n");
-    return false;
-  }
-  if (!init(&game->gui,"assets/main.png",width,height))
-  {
-    bq_log("[game] error: could not load gui\n");
-    return false;
-  }
-  if (!init(&game->audio))
-  {
-    bq_log("[game] error: could not load audio\n");
-    return false;
-  }
-  
-  init(&game->camera,bq_perspective((float)width/(float)height,kPI*0.35f,0.25f,200.0f));
-  init(&game->player,game->world.spawn);
-
-  return true;
-}
-
-void deltatime(Game* game)
+static void deltatime(Game* game)
 {
   const float upper=0.016f;
   unsigned tick=bq_get_ticks();
@@ -57,63 +28,119 @@ void deltatime(Game* game)
   game->dt=result>upper?upper:result;
 }
 
+bool init(Game* game,int width,int height)
+{
+  game->state=GAME_STATE_LOADING;
+  game->width=width;
+  game->height=height;
+  game->tick=bq_get_ticks();
+  deltatime(game);
+
+  init(&game->input);
+  if (!init(&game->audio))
+  {
+    bq_log("[game] error: could not load audio\n");
+    return false;
+  }
+  if (!init(&game->gui,"assets/main.png",width,height))
+  {
+    bq_log("[game] error: could not load gui\n");
+    return false;
+  }
+  if (!init(&game->mesh_cache,256*1024)) 
+  {
+    bq_log("[game] error: could create mesh cache\n");
+    return false;
+  }
+  if (!init(&game->world,&game->mesh_cache,"assets/material/main.png","assets/map/first.png"))
+  {
+    bq_log("[game] error: could not load world\n");
+    return false;
+  }
+  
+  init(&game->camera,bq_perspective((float)width/(float)height,kPI*0.35f,0.25f,200.0f));
+  init(&game->player,game->world.map.spawn);
+
+  return true;
+}
+
+static void respawn(Game* game)
+{
+  reset(&game->player,game->world.map.spawn);
+  update(&game->camera,game->player.axis,game->player.position);
+}
+
 static void change_state(Game* game,GameState state)
 {
   bq_log("[game] changing game state '%s' -> '%s'\n",
     game_state_string(game->state),
     game_state_string(state));
+
+  switch(state)
+  {
+    case GAME_STATE_MENU:
+    {
+      set_cursor_visible(&game->input,true);
+    } break;
+    case GAME_STATE_PLAY:
+    {
+      set_cursor_visible(&game->input,false);
+    } break;
+    case GAME_STATE_END:
+    {
+      set_cursor_visible(&game->input,true);
+    } break;
+  }
+
   game->state=state;
 }
 
 static bool update_loading(Game* game)
 {
-  controller(&game->input,&game->camera,&game->player);
-  change_state(game,GAME_STATE_START);
+  const Player* player=&game->player;
+  update(&game->camera,player->axis,player->position);
+  change_state(game,GAME_STATE_MENU);
   return true;
 }
 
-static bool update_start(Game* game)
+static bool update_menu(Game* game)
 {  
+  const bool is_clicked=is_left_down_once(&game->input);
+
   float x=game->width*0.5f-25.0f;
   float y=game->height*0.5f-10.0f;
-  if (button(&game->gui,game->input.left_button_once,{x,y,50,20},"PLAY"))
+  
+  if (button(&game->gui,is_clicked,{x,y,50,20},"PLAY"))
   {
-    game->input.state=INPUT_STATE_CAMERA;
-    game->input.is_cursor_visible=false;
-    game->input.mouse_position=bq_mouse_position();
-    bq_set_cursor(false);
-    reset(&game->world);
-    change_state(game,GAME_STATE_PLAY);
     play(&game->audio,SOUND_SPAWN,0.15f);
+    change_state(game,GAME_STATE_PLAY);
   }
-
-  if (button(&game->gui,game->input.left_button_once,{10,314,30,12},"EXIT"))
+  if (button(&game->gui,is_clicked,{x,y+30.0f,50,20},"EXIT"))
   {
     return false;
   }
 
-  sprintf_s<32>(game->gui.label_mouse_inv_y,"INVERT Y      %s",game->input.inverse.y<0.0f?"TRUE":"FALSE");
-  make_label(&game->gui,{32,335},{0.0f,0.0f,0.0f,1.0f},game->gui.label_mouse_inv_y);
-  make_label(&game->gui,{32,334},{1.0f,1.0f,1.0f,1.0f},game->gui.label_mouse_inv_y);
-  if (button(&game->gui,game->input.left_button_once,{10,330,8,8},"+"))
+  char* text=NULL;
+  bool is_inverted=is_mouse_axis_y_inverted(&game->input.mouse);
+  text=allocate(&game->gui.string_cache,32);
+  sprintf_s(text,32,"INVERT Y      %s",is_inverted?"TRUE":"FALSE");
+  label(&game->gui,{32,332},text);
+  if (button(&game->gui,is_clicked,{10,330,8,8},"+"))
   {
-    game->input.inverse.y=-game->input.inverse.y;
+    invert_mouse_axis_y(&game->input.mouse);
   }
 
-  sprintf_s<32>(game->gui.label_mouse_sens, "SENSITIVITY  %3.2f",game->input.sensitivity);
-  make_label(&game->gui,{32,343},{0.0f,0.0f,0.0f,1.0f},game->gui.label_mouse_sens);
-  make_label(&game->gui,{32,342},{1.0f,1.0f,1.0f,1.0f},game->gui.label_mouse_sens);
-  if (button(&game->gui,game->input.left_button_once,{10,340,8,8},"+"))
+  const float sens=game->input.mouse.sensitivity;
+  text=allocate(&game->gui.string_cache,32);
+  sprintf_s(text,32, "SENSITIVITY  %3.2f",sens);
+  label(&game->gui,{32,343},text);
+  if (button(&game->gui,is_clicked,{10,340,8,8},"+"))
   {
-    game->input.sensitivity+=0.2f;
+    mouse_increment_sensitivity(&game->input.mouse,0.2f);
   }
-  if (button(&game->gui,game->input.left_button_once,{22,340,8,8},"-"))
+  if (button(&game->gui,is_clicked,{22,340,8,8},"-"))
   {
-    game->input.sensitivity-=0.2f;
-    if (game->input.sensitivity<0.2f) 
-    {
-      game->input.sensitivity=0.2f;
-    }
+    mouse_decrement_sensitivity(&game->input.mouse,0.2f);
   }
 
   make_label(&game->gui,
@@ -126,34 +153,40 @@ static bool update_start(Game* game)
 
 static bool update_play(Game* game)
 {
-  controller(&game->input,&game->player,&game->audio,game->dt);
-  contain(&game->world,&game->player);
-  controller(&game->input,&game->camera,&game->player);
+  const bool is_clicked=is_left_down_once(&game->input);
+
+  controller(&game->player,&game->input,&game->audio,game->dt);
+  contain(&game->world.map,&game->player);
+  update(&game->camera,game->player.axis,game->player.position);
+  
+  update(&game->world,&game->player,&game->audio,game->dt);
+  update(&game->gui,&game->input,&game->world,game->player.position,game->state,game->dt);
+
+  if (was_escape_down_once(&game->input))
+  {
+    set_cursor_visible(&game->input,!game->input.is_cursor_visible);
+  }
 
   if (game->input.is_cursor_visible)
   {
     float x=game->gui.width*0.5f-25.0f;
     float y=game->gui.height*0.5f-10.0f;
-    if (button(&game->gui,game->input.left_button_once,{x,y,50,20},"QUIT"))
+    if (button(&game->gui,is_clicked,{x,y,50,20},"QUIT"))
     {
+      respawn(game);
       play(&game->audio,SOUND_DEAD,0.2f);
-      reset(&game->player,game->world.spawn);
-      controller(&game->input,&game->camera,&game->player);
-      change_state(game,GAME_STATE_START);
+      change_state(game,GAME_STATE_MENU);
     }
   }
+
   if (!is_alive(&game->player))
   {
     play(&game->audio,SOUND_DEAD,0.2f);
-    //init(&game->input);
-    bq_set_cursor(true);
     change_state(game,GAME_STATE_END);
   }
-  if (is_goal_reached(&game->world,&game->player))
+  if (is_goal_reached(game->world.map.finish,game->player.position))
   {
     play(&game->audio,SOUND_FINISH,0.1f);
-    //init(&game->input);
-    bq_set_cursor(true);
     change_state(game,GAME_STATE_END);
   }
 
@@ -162,13 +195,15 @@ static bool update_play(Game* game)
 
 static bool update_end(Game* game)
 {
+  const bool is_clicked=is_left_down_once(&game->input);
+
   float x=game->width*0.5f-25.0f;
   float y=game->height*0.5f-10.0f;
-  if (button(&game->gui,game->input.left_button_once,{x,y,50,20}, "QUIT"))
+  
+  if (button(&game->gui,is_clicked,{x,y,50,20}, "QUIT"))
   {
-    reset(&game->player,game->world.spawn);
-    controller(&game->input,&game->camera,&game->player);
-    change_state(game,GAME_STATE_START);
+    respawn(game);
+    change_state(game,GAME_STATE_MENU);
   }
   return true;
 }
@@ -177,14 +212,13 @@ bool update(Game* game)
 {
   deltatime(game);
   process(&game->input,game->state);
-  update(&game->world,&game->player,&game->audio,game->dt);
-  update(&game->gui,&game->input,&game->world,game->player.position,game->state,game->dt);
+  reset(&game->gui);
 
   bool result=false;
   switch(game->state)
   {
     case GAME_STATE_LOADING: { result=update_loading(game); } break;
-    case GAME_STATE_START:   { result=update_start(game); } break;
+    case GAME_STATE_MENU:    { result=update_menu(game); } break;
     case GAME_STATE_PLAY:    { result=update_play(game); } break;
     case GAME_STATE_END:     { result=update_end(game); } break;
   }
@@ -193,10 +227,6 @@ bool update(Game* game)
 
 void draw(Game* game)
 {
-  draw(&game->world,&game->camera);
+  draw(&game->world,&game->camera,game->state);
   draw(&game->gui,&game->player,game->state);
-
-#if DEVELOPMENT==1
-  draw_debug_info(&game->gui.font,&game->input,&game->player);
-#endif
 }

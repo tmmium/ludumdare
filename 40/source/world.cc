@@ -1,55 +1,19 @@
 // world.cc
 
-struct World
+struct Map
 {
   v3 spawn;
   v3 finish;
-  int texture;
-  Bitmap bitmap;
+  Mesh mesh;
   Bitmap collision;
-  Mesh world_mesh;
-  Mesh entity_mesh[4];
+  int num_tiles;
   int num_entities;
-  Entity* entities;
 };
 
-const unsigned ENTITYCOLOR[ENTITY_TYPE_COUNT]=
+bool init(MeshCache* cache,const char* filename,Map* map)
 {
-  0xff0000ff, // spawn
-  0xff00ff00, // finish
-  0xff00ffff, // pickup
-  0xffff00ff, // spike
-  0xff000000, // invalid
-};
-
-static unsigned entity_color(EntityType type)
-{
-  return ENTITYCOLOR[type];
-}
-
-static bool is_entity_type(unsigned color,EntityType type)
-{
-  return ENTITYCOLOR[type]==color;
-}
-
-void reset(World* world)
-{
-  for (int i=0,e=world->num_entities;i<e;i++)
-  {
-    reset(world->entities+i);
-  }
-}
-
-bool init(World* world,const char* texname,const char* mapname)
-{
-  Bitmap bitmap;
-  if (!init(&bitmap,texname)) {return false;}
-  int texture=bq_create_texture(bitmap.width,bitmap.height,bitmap.data);
-  if (texture==0) {return false;}
-  destroy(&bitmap);
-
   Bitmap collision;
-  if (!init(&collision,mapname)) {return false;}
+  if (!init(&collision,filename)) {return false;}
 
   int num_tiles=0,num_entities=0;
   v3 spawn={},finish={};
@@ -62,9 +26,9 @@ bool init(World* world,const char* texname,const char* mapname)
       if (is_entity_type(pixel,ENTITY_INVALID)) {continue;}
 
       num_tiles++;
+
       if (is_entity_type(pixel,ENTITY_SPAWN)) 
       {
-        //num_entities++;
         spawn={(float)x+0.5f,0.0f,(float)y+0.5f};
       }
       else if (is_entity_type(pixel,ENTITY_FINISH))
@@ -85,59 +49,93 @@ bool init(World* world,const char* texname,const char* mapname)
 
   if (length(spawn)<0.1f||length(finish)<0.1f) {return false;}
 
-  world->spawn=spawn;
-  world->finish=finish;
-  world->texture=texture;
-  world->bitmap=bitmap;
-  world->collision=collision;
-  init(&world->world_mesh,num_tiles*6*6);
-  build_world_mesh(&world->world_mesh,&world->collision);
-  init(world->entity_mesh+ENTITY_SPAWN,6*6);
-  build_spawn_mesh(world->entity_mesh+ENTITY_SPAWN);
-  init(world->entity_mesh+ENTITY_FINISH,6*6);
-  build_finish_mesh(world->entity_mesh+ENTITY_FINISH);
-  init(world->entity_mesh+ENTITY_PICKUP,6*6);
-  build_pickup_mesh(world->entity_mesh+ENTITY_PICKUP);
-  init(world->entity_mesh+ENTITY_SPIKE,27);
-  build_spike_mesh(world->entity_mesh+ENTITY_SPIKE);
-  
-  world->num_entities=0;
-  world->entities=(Entity*)malloc(sizeof(Entity)*num_entities);
-  
-  for (int y=0;y<collision.height;y++)
-  {
-    for (int x=0;x<collision.width;x++)
-    {
-      unsigned pixel=pixel_at(&collision,x,y);
-      if (is_entity_type(pixel,ENTITY_INVALID)) {continue;}
+  Mesh mesh;
+  build_world_mesh(cache,&mesh,&collision);
 
-      if (is_entity_type(pixel,ENTITY_SPAWN)) 
-      {
-        //init(world->entities+world->num_entities,ENTITY_SPAWN,{x+0.5f,0.0f,y+0.5f});
-        //world->num_entities++;
-      }
-      else if (is_entity_type(pixel,ENTITY_FINISH))
-      {
-        init(world->entities+world->num_entities,ENTITY_FINISH,{x+0.5f,0.0f,y+0.5f});
-        world->num_entities++;
-      }
-      else if(is_entity_type(pixel,ENTITY_PICKUP))
-      {
-        init(world->entities+world->num_entities,ENTITY_PICKUP,{x+0.5f,0.0f,y+0.5f});
-        world->num_entities++;
-      }
-      else if(is_entity_type(pixel,ENTITY_SPIKE))
-      {
-        init(world->entities+world->num_entities,ENTITY_SPIKE,{x+0.5f,0.0f,y+0.5f});
-        world->num_entities++;
-      }
-    }
-  }
+  map->mesh=mesh;
+  map->spawn=spawn;
+  map->finish=finish;
+  map->collision=collision;
+  map->num_tiles=num_tiles;
+  map->num_entities=num_entities;
 
   return true;
 }
 
-void contain(World* world,Player* player)
+void draw(const Map* map)
+{
+  draw(&map->mesh,{0.0f,0.0f,0.0f},0.0f);
+}
+
+struct World
+{
+  int texture;
+  Mesh meshes[ENTITY_TYPE_COUNT];
+  // entity_cache
+  int num_entities;
+  Entity* entities;
+  Map map;
+};
+
+void reset(World* world)
+{
+  for (int i=0,e=world->num_entities;i<e;i++)
+  {
+    reset(world->entities+i);
+  }
+}
+
+bool init(World* world,MeshCache* cache,const char* texname,const char* mapname)
+{
+  Bitmap bitmap;
+  if (!init(&bitmap,texname)) {return false;}
+  int texture=bq_create_texture(bitmap.width,bitmap.height,bitmap.data);
+  destroy(&bitmap);
+  if (texture==0) {return false;}
+
+  Map map;
+  if (!init(cache,mapname,&map)) {return false;}
+
+  Entity* entities=(Entity*)malloc(sizeof(Entity)*map.num_entities);
+  int num_entities=0;
+
+  for (int y=0;y<map.collision.height;y++)
+  {
+    for (int x=0;x<map.collision.width;x++)
+    {
+      unsigned pixel=pixel_at(&map.collision,x,y);
+      if (is_entity_type(pixel,ENTITY_INVALID)) {continue;}
+
+      if (is_entity_type(pixel,ENTITY_FINISH))
+      {
+        init(entities+num_entities,ENTITY_FINISH,{x+0.5f,0.0f,y+0.5f});
+        num_entities++;
+      }
+      else if(is_entity_type(pixel,ENTITY_PICKUP))
+      {
+        init(entities+num_entities,ENTITY_PICKUP,{x+0.5f,0.0f,y+0.5f});
+        num_entities++;
+      }
+      else if(is_entity_type(pixel,ENTITY_SPIKE))
+      {
+        init(entities+num_entities,ENTITY_SPIKE,{x+0.5f,0.0f,y+0.5f});
+        num_entities++;
+      }
+    }
+  }
+
+  world->texture=texture;
+  build_finish_mesh(cache,world->meshes+ENTITY_FINISH);
+  build_pickup_mesh(cache,world->meshes+ENTITY_PICKUP);
+  build_spike_mesh(cache,world->meshes+ENTITY_SPIKE);
+  world->num_entities=num_entities;
+  world->entities=entities;
+  world->map=map;
+
+  return true;
+}
+
+void contain(Map* map,Player* player)
 {
   // todo: out of bounds, kill!
   const float x=floor(player->local_position.x);
@@ -157,15 +155,15 @@ void contain(World* world,Player* player)
   };
 
   bool check[9]={};
-  check[0]=is_wall(&world->collision,x-1,y-1);
-  check[1]=is_wall(&world->collision,x  ,y-1);
-  check[2]=is_wall(&world->collision,x+1,y-1);
-  check[3]=is_wall(&world->collision,x-1,y  );
-  check[4]=is_wall(&world->collision,x  ,y  );
-  check[5]=is_wall(&world->collision,x+1,y  );
-  check[6]=is_wall(&world->collision,x-1,y+1);
-  check[7]=is_wall(&world->collision,x  ,y+1);
-  check[8]=is_wall(&world->collision,x+1,y+1);
+  check[0]=is_wall(&map->collision,x-1,y-1);
+  check[1]=is_wall(&map->collision,x  ,y-1);
+  check[2]=is_wall(&map->collision,x+1,y-1);
+  check[3]=is_wall(&map->collision,x-1,y  );
+  check[4]=is_wall(&map->collision,x  ,y  );
+  check[5]=is_wall(&map->collision,x+1,y  );
+  check[6]=is_wall(&map->collision,x-1,y+1);
+  check[7]=is_wall(&map->collision,x  ,y+1);
+  check[8]=is_wall(&map->collision,x+1,y+1);
 
   v3 correction={};  
   v2 position={player->local_position.x,player->local_position.z};
@@ -216,30 +214,31 @@ void contain(World* world,Player* player)
   correct(player,correction);
 }
 
-bool is_goal_reached(const World* world,const Player* player)
+bool is_goal_reached(const v3 finish,const v3 position)
 {
-  v3 diff=world->finish-player->position;
+  v3 diff=finish-position;
   float dist=length(diff);
   if (dist<0.7f) {return true;}
   return false;
 }
 
+// todo: move to entity
 void update(World* world,Player* player,const Audio* audio,float dt)
 {
   const v3 pp=player->local_position;
   for (int i=0,e=world->num_entities;i<e;i++)
   {
-    Entity* ent=world->entities+i;
-    if (!ent->active) {continue;}
-    if (ent->type==ENTITY_PICKUP)
+    Entity* entity=world->entities+i;
+    if (!entity->active) {continue;}
+    if (entity->type==ENTITY_PICKUP)
     {
-      ent->timer+=dt;
-      ent->y_bob=0.2f+0.01f*sinf(ent->timer*10.0f);
+      entity->timer+=dt;
+      entity->y_bob=0.2f+0.01f*sinf(entity->timer*10.0f);
       
-      float dist=length(pp-ent->position);
+      float dist=length(pp-entity->position);
       if (dist<0.4f)
       {
-        ent->active=false;
+        entity->active=false;
         player->score+=1;
         if (player->score>0&&player->score%20==0)
         {
@@ -250,51 +249,54 @@ void update(World* world,Player* player,const Audio* audio,float dt)
           play(audio,SOUND_PICKUP,0.15f);
       }
     }
-    else if(ent->type==ENTITY_SPIKE)
+    else if(entity->type==ENTITY_SPIKE)
     {
-      if (ent->triggered)
+      if (entity->triggered)
       {
-        ent->y_bob=0.0f;
+        entity->y_bob=0.0f;
       }
       else 
       {
-        ent->y_bob=-0.25f;
+        entity->y_bob=-0.25f;
       }
 
-      float dist=length(pp-ent->position);
+      float dist=length(pp-entity->position);
       if (dist<0.3f)
       {
-        if (!ent->triggered)
+        if (!entity->triggered)
         {
-          ent->triggered=true;
+          entity->triggered=true;
           play(audio,SOUND_SPIKE,0.2f);
           take_damage(player);
         }
       }
       else 
       {
-        ent->triggered=false;
+        entity->triggered=false;
       }
     }
   }
 }
 
-void draw(const World* world,const Camera* camera)
+void draw(const World* world,const Camera* camera,GameState state)
 {
+  if (state==GAME_STATE_LOADING) {return;}
+
   bq_prepare3d();
   bq_enable_fog({0,0,0,1},0.5f,1.0f,10.0f);
   bq_projection(camera->proj);
   bq_view(camera->view);
   bq_bind_texture(world->texture);
 
-  // objects
-  draw(&world->world_mesh,{0.f,0.f,0.f},0.0f);
+  draw(&world->map);
   for (int i=0;i<world->num_entities;i++)
   {
-    const Entity* ent=world->entities+i;
-    if (!ent->active) {continue;}
-    const Mesh* mesh=world->entity_mesh+ent->type;
-    draw(mesh,entity_position(ent),entity_rotation(ent));
+    const Entity* entity=world->entities+i;
+    if (!entity->active) {continue;}
+    const Mesh* mesh=world->meshes+entity->type;
+    const v3 position=entity_position(entity);
+    const float rotation=entity_rotation(entity);
+    draw(mesh,position,rotation);
   }
 }
 

@@ -1,6 +1,9 @@
 # directories
 build/
 
+# files
+debug.txt
+
 # extensions
 *.exe
 *.lib

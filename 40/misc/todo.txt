@@ -49,10 +49,17 @@ release game on itch.io, with a pay-what-you-want price tag.
 - teleports?
 - bundle game assets (zip?) 
 - proper name for project!
-- better gui management?
+- better gui management
+- level system
+- refactor mesh cache to have all default prop meshes first
 
 ## in-progress
 
 ## complete
 - remove start portal
 - refactor mesh builder (for cubes)
+- refactor mesh building (#2)
+- mesh cache
+- string cache for gui
+- minor refactor game state management
+- 

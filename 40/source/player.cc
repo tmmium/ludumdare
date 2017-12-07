@@ -10,10 +10,12 @@ struct Player
   float timer;
   float y_bob;
   float step;
+  float walk_speed;
+  float run_speed;
   v3 local_position;
   v3 position;
   v3 axis[3];
-  float radians[3];
+  v3 radians;
 };
 
 void correct(Player* player,v3 offset)
@@ -31,14 +33,14 @@ void reset(Player* player,v3 position)
   player->timer=0.0f;
   player->y_bob=0.0f;
   player->step=0.0f;
+  player->walk_speed=2.0f;
+  player->run_speed=4.0f;
   player->local_position=position;
   player->position=position;
   player->axis[0]={1.f,0.f,0.f};
   player->axis[1]={0.f,1.f,0.f};
   player->axis[2]={0.f,0.f,1.f};
-  player->radians[0]=0.0f;
-  player->radians[1]=0.0f;
-  player->radians[2]=0.0f;
+  player->radians={0.0f,0.0f,0.0f};
   correct(player,{0.0f,0.0f,0.0f});
 }
 
@@ -66,15 +68,79 @@ void strafe(Player* player,float amount)
 void rotate_x(Player* player,float amount)
 {
   const float mm=player->x_limit;
-  player->radians[0]+=amount;
-  player->radians[0]=maxf(-mm,minf(player->radians[0],mm));
+  player->radians.x+=amount;
+  player->radians.x=maxf(-mm,minf(player->radians.x,mm));
 }
 
 void rotate_y(Player* player,float amount)
 {
-  player->radians[1]+=amount;
-  if (player->radians[1]>kPI2) {player->radians[1]-=kPI2;}
-  if (player->radians[1]<kPI2) {player->radians[1]+=kPI2;}
+  player->radians.y+=amount;
+  if (player->radians.y>kPI2) {player->radians.y-=kPI2;}
+  if (player->radians.y<kPI2) {player->radians.y+=kPI2;}
+}
+
+void controller(Player* player,const Input* input,const Audio* audio,float dt)
+{
+  if (input->is_cursor_visible) {return;}
+
+  const Mouse* mouse=&input->mouse;
+  const float sens=mouse->sensitivity*dt;
+  const v2 look_delta=mouse->look_delta;
+  const v2 look_inverse=mouse->inverse;
+  if (fabsf(look_delta.x)>0.0f)
+  {
+    rotate_y(player,look_delta.x*sens*look_inverse.x);
+  }
+  if (fabsf(look_delta.y)>0.0f)
+  {
+    rotate_x(player,look_delta.y*sens*look_inverse.y);
+  }
+
+  const Keyboard* keyboard=&input->keyboard;
+  bool moving=false;
+  bool running=keyboard->boost;
+  const float speed=running?player->run_speed:player->walk_speed;
+  const float movement=speed*dt;
+  if (keyboard->forward)      {forward(player, movement); moving=true;}
+  if (keyboard->backward)     {forward(player, -movement); moving=true;}
+  if (keyboard->left)         {strafe(player,-movement); moving=true;}
+  if (keyboard->right)        {strafe(player, movement); moving=true;}
+
+  if (moving) 
+  {
+    const float bob_factor=running?0.05f:0.025f;
+    player->timer+=dt;
+    player->y_bob=bob_factor*sinf(player->timer*15.0f);
+    player->step+=dt;
+    if (player->step>0.42f)
+    {
+      player->step=0.0f;
+      play(audio,SOUND_STEP,0.2f);
+    }
+  }
+  else 
+  {
+    player->timer=0.0f;
+    player->y_bob*=0.9f;
+    player->step=0.42f;
+  }
+  correct(player,{0.0f,0.0f,0.0f});
+
+  v3 x={1.0f,0.0f,0.0f};
+  v3 y={0.0f,1.0f,0.0f};
+  v3 z={0.0f,0.0f,1.0f};
+
+  m4 ry=rotate(y,player->radians.y);
+  x=normalize(transform_normal(ry,x));
+  z=normalize(transform_normal(ry,z));
+
+  m4 rx=rotate(x,player->radians.x);
+  y=normalize(transform_normal(rx,y));
+  z=normalize(transform_normal(rx,z));
+
+  player->axis[0]=x;
+  player->axis[1]=y;
+  player->axis[2]=z;
 }
 
 void take_damage(Player* player)

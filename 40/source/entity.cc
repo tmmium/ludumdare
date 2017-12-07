@@ -51,3 +51,22 @@ float entity_rotation(const Entity* entity)
 {
   return entity->timer;
 }
+
+const unsigned ENTITYCOLOR[ENTITY_TYPE_COUNT]=
+{
+  0xff0000ff, // spawn
+  0xff00ff00, // finish
+  0xff00ffff, // pickup
+  0xffff00ff, // spike
+  0xff000000, // invalid
+};
+
+static unsigned entity_color(EntityType type)
+{
+  return ENTITYCOLOR[type];
+}
+
+static bool is_entity_type(unsigned color,EntityType type)
+{
+  return ENTITYCOLOR[type]==color;
+}

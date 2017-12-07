@@ -1,5 +1,24 @@
 // gui.cc
 
+struct StringCache
+{
+  int size;
+  char data[2048];
+};
+
+void reset(StringCache* cache)
+{
+  cache->size=0;
+}
+
+char* allocate(StringCache* cache,int len)
+{
+  if (cache->size+len>=2048) {return 0;}
+  char* result=cache->data+cache->size;
+  cache->size+=len;
+  return result;
+}
+
 struct Label
 {
   v4 color;
@@ -23,6 +42,7 @@ enum WidgetType
 {
   WIDGET_LABEL,
   WIDGET_BUTTON,
+  WIDGET_INVALID,
 };
 
 struct Widget
@@ -36,6 +56,7 @@ struct Widget
   };
 };
 
+#define MAX_WIDGET_COUNT 128
 struct GUI
 {
   int width;
@@ -58,10 +79,8 @@ struct GUI
   Sprite minisprite;
   v2 minimap_position;
   int num_widgets;
-  Widget widgets[64];
-
-  char label_mouse_sens[32];
-  char label_mouse_inv_y[32];
+  Widget widgets[MAX_WIDGET_COUNT];
+  StringCache string_cache;
 };
 
 static void make_label(GUI* gui,const v2 position,const v4 color,const char* text)
@@ -138,6 +157,12 @@ bool init(GUI* gui,const char* filename,int width,int height)
   gui->minimap_position={width-70.0f,4.0f};
 
   gui->num_widgets=0;
+  for (int i=0;i<MAX_WIDGET_COUNT;i++)
+  {
+    gui->widgets[i].type=WIDGET_INVALID;
+  }
+
+  reset(&gui->string_cache);
   
   return true;
 }
@@ -149,6 +174,12 @@ static bool overlap(const v2 position,const v4 rect)
   return true;
 }
 
+void reset(GUI* gui)
+{
+  gui->num_widgets=0;
+  reset(&gui->string_cache);
+}
+
 void update(GUI* gui,const Input* input,const World* world,v3 pp,GameState state,float dt)
 {
   gui->is_crosshair_visible=!input->is_cursor_visible;
@@ -157,7 +188,7 @@ void update(GUI* gui,const Input* input,const World* world,v3 pp,GameState state
   if (gui->minimap_timer<0.0f)
   {
     gui->minimap_timer=gui->minimap_refresh;
-    blit(&gui->minimap,&world->collision,(int)pp.x,(int)pp.z);
+    blit(&gui->minimap,&world->map.collision,(int)pp.x,(int)pp.z);
     upload(&gui->minimap,gui->mini_texture);
   }
 }
@@ -224,6 +255,10 @@ void draw(GUI* gui,const Player* player,GameState state)
   }
 
   draw_widgets(gui,state);
+
+#if DEVELOPMENT==1
+  //draw_debug_info(&gui->font,&game->input,&game->player);
+#endif
 }
 
 static void draw_debug_info(Font* font,Input* input,Player* player)
@@ -253,6 +288,13 @@ v2 mouse_position_scaled(const GUI* gui)
   return res; 
 }
 
+void label(GUI* gui,const v2 position,const char* text)
+{
+  v2 background={position.x,position.y+1.0f};
+  make_label(gui,background,{0.0f,0.0f,0.0f,1.0f},text);
+  make_label(gui,position,{1.0f,1.0f,1.0f,1.0f},text);
+}
+
 bool button(GUI* gui,bool down,const v4 rect,const char* text)
 {
   v2 position={rect.x,rect.y};
@@ -271,10 +313,9 @@ bool button(GUI* gui,bool down,const v4 rect,const char* text)
   init(&sprite,&gui->bitmap,63,0,1,1);
   sprite.dim.x=rect.z;
   sprite.dim.y=rect.w;
+  v2 offset=text_offset(&gui->font,{rect.z,rect.w},text);
 
   make_button(gui,position,state,sprite);
-
-    v2 offset=text_offset(&gui->font,{rect.z,rect.w},text);
   make_label(gui,position+offset,{0.0f,0.0f,0.0f,1.0f},text);
 
   return inside&&state==BUTTON_DOWN;

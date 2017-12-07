@@ -2,159 +2,157 @@
 
 #define VK_SHIFT          0x10
 #define VK_ESCAPE         0x1B
+#define VK_F1             0x70
 #define VK_FORWARD        ((int)'W')
 #define VK_BACKWARD       ((int)'S')
 #define VK_STRAFE_LEFT    ((int)'A')
 #define VK_STRAFE_RIGHT   ((int)'D')
 
-enum InputState
+struct Mouse
 {
-  INPUT_STATE_MENU,
-  INPUT_STATE_CAMERA,
+  v2 look_delta;
+  v2 position;
+  bool buttons[2];
+  bool buttons_once[2];
+  float sensitivity;
+  v2 inverse;
 };
+
+void init(Mouse* mouse)
+{
+  mouse->position=bq_mouse_position();
+  mouse->look_delta={0.0f,0.0f};
+  mouse->buttons[0]=bq_mouse_button(0);
+  mouse->buttons[1]=bq_mouse_button(1);
+  mouse->buttons_once[0]=false;
+  mouse->buttons_once[1]=false;
+  mouse->sensitivity=3.0f;
+  mouse->inverse={0.022f,-0.022f};
+}
+
+void process(Mouse* mouse)
+{
+  v2 pos=bq_mouse_position();
+  mouse->look_delta=pos-mouse->position;
+  mouse->position=pos;
+  bool is_left_button_down=bq_mouse_button(0);
+  bool is_right_button_down=bq_mouse_button(1);
+  mouse->buttons_once[0]=!mouse->buttons[0]&&is_left_button_down;
+  mouse->buttons_once[1]=!mouse->buttons[1]&&is_right_button_down;
+  mouse->buttons[0]=is_left_button_down;
+  mouse->buttons[1]=is_right_button_down;
+}
+
+void mouse_sensitivity(Mouse* mouse,float sensitivity)
+{
+  mouse->sensitivity=sensitivity;
+}
+
+void mouse_increment_sensitivity(Mouse* mouse,float sensitivity)
+{
+  mouse->sensitivity+=sensitivity;
+}
+
+void mouse_decrement_sensitivity(Mouse* mouse,float sensitivity)
+{
+  mouse->sensitivity-=sensitivity;
+  mouse->sensitivity=maxf(mouse->sensitivity,0.2f);
+}
+
+void invert_mouse_axis_y(Mouse* mouse)
+{
+  mouse->inverse.y=-mouse->inverse.y;
+}
+
+bool is_mouse_axis_y_inverted(Mouse* mouse)
+{
+  return mouse->inverse.y<0.0f?true:false;
+}
+
+struct Keyboard
+{
+  bool escape[2];
+  bool boost;
+  bool forward;
+  bool backward;
+  bool left;
+  bool right;
+};
+
+void init(Keyboard* keyboard)
+{
+  keyboard->escape[0]=false;
+  keyboard->escape[1]=false;
+  keyboard->boost=false;
+  keyboard->forward=false;
+  keyboard->backward=false;
+  keyboard->left=false;
+  keyboard->right=false;
+}
+
+void process(Keyboard* keyboard)
+{
+  keyboard->escape[1]=keyboard->escape[0];
+  keyboard->escape[0]=bq_keyboard(VK_ESCAPE);
+  keyboard->boost=bq_keyboard(VK_SHIFT);
+  keyboard->forward=bq_keyboard(VK_FORWARD);
+  keyboard->backward=bq_keyboard(VK_BACKWARD);
+  keyboard->left=bq_keyboard(VK_STRAFE_LEFT);
+  keyboard->right=bq_keyboard(VK_STRAFE_RIGHT);
+}
 
 struct Input
 {
-  InputState state;
   bool is_cursor_visible;
-  bool was_escape_down;
-  v2 mouse_position;
-  v2 mouse_delta;
-  bool mouse_buttons[2];
-  bool left_button_once;
-  bool right_button_once;
-  float sensitivity;
-  v2 inverse;
-  float walk_speed;
-  float run_speed;
+  Mouse mouse;
+  Keyboard keyboard;
 };
 
 void init(Input* input)
 {
-  input->state=INPUT_STATE_MENU;
   input->is_cursor_visible=true;
-  input->was_escape_down=false;
-  input->mouse_position=bq_mouse_position();
-  input->mouse_delta={0.0f,0.0f};
-  input->mouse_buttons[0]=bq_mouse_button(0);
-  input->mouse_buttons[1]=bq_mouse_button(1);
-  input->left_button_once=false;
-  input->right_button_once=false;
-  input->sensitivity=3.0f;
-  input->inverse={0.022f,-0.022f};
-  input->walk_speed=2.0f;
-  input->run_speed=4.0f;
+  init(&input->mouse);
+  init(&input->keyboard);  
+}
+
+void set_cursor_visible(Input* input,bool state)
+{
+  if (input->is_cursor_visible==state) {return;}
+  input->is_cursor_visible=state;
+  bq_set_cursor(input->is_cursor_visible);
 }
 
 void process(Input* input,GameState state)
 {
-  v2 mouse=bq_mouse_position();
-  input->mouse_delta=mouse-input->mouse_position;
-  input->mouse_position=mouse;
-
-  bool is_left_button_down=bq_mouse_button(0);
-  bool is_right_button_down=bq_mouse_button(1);
-  input->left_button_once=!input->mouse_buttons[0]&&is_left_button_down;
-  input->right_button_once=!input->mouse_buttons[1]&&is_right_button_down;
-  input->mouse_buttons[0]=is_left_button_down;
-  input->mouse_buttons[1]=is_right_button_down;
-
-  if (state==GAME_STATE_PLAY)
+  process(&input->mouse);
+  process(&input->keyboard);
+  if (!input->is_cursor_visible) 
   {
-    if (!input->was_escape_down&&bq_keyboard(VK_ESCAPE))
-    {
-      input->was_escape_down=true;
-      if (input->state==INPUT_STATE_MENU)
-      {
-        input->state=INPUT_STATE_CAMERA;
-        input->is_cursor_visible=false;
-      }
-      else if(input->state==INPUT_STATE_CAMERA)
-      {
-        input->state=INPUT_STATE_MENU;
-        input->is_cursor_visible=true;
-      }
-      bq_set_cursor(input->is_cursor_visible);
-    }
-    else if(input->was_escape_down&&!bq_keyboard(VK_ESCAPE))
-    {
-      input->was_escape_down=false;
-    }
-
-    if (!input->is_cursor_visible) 
-    {
-      bq_center_cursor();
-    }
+    bq_center_cursor();
   }
 }
 
-// todo: move to player.cc
-void controller(Input* input,Player* player,const Audio* audio,float dt)
+bool is_left_down(const Input* input)
 {
-  if (input->state!=INPUT_STATE_CAMERA) {return;}
-
-  const float sensitivity=input->sensitivity*dt;
-  if (fabsf(input->mouse_delta.x)>0.0f)
-  {
-    rotate_y(player,input->mouse_delta.x*sensitivity*input->inverse.x);
-  }
-  if (fabsf(input->mouse_delta.y)>0.0f)
-  {
-    rotate_x(player,input->mouse_delta.y*sensitivity*input->inverse.y);
-  }
-
-  bool moving=false;
-  bool running=bq_keyboard(VK_SHIFT);
-  const float speed=running?input->run_speed:input->walk_speed;
-  const float movement=speed*dt;
-  if (bq_keyboard(VK_FORWARD))      {forward(player, movement); moving=true;}
-  if (bq_keyboard(VK_BACKWARD))     {forward(player, -movement); moving=true;}
-  if (bq_keyboard(VK_STRAFE_LEFT))  {strafe(player,-movement); moving=true;}
-  if (bq_keyboard(VK_STRAFE_RIGHT)) {strafe(player, movement); moving=true;}
-
-  if (moving) 
-  {
-    const float bob_factor=running?0.05f:0.025f;
-    player->timer+=dt;
-    player->y_bob=bob_factor*sinf(player->timer*15.0f);
-    player->step+=dt;
-    if (player->step>0.42f)
-    {
-      player->step=0.0f;
-      play(audio,SOUND_STEP,0.2f);
-    }
-  }
-  else 
-  {
-    player->timer=0.0f;
-    player->y_bob*=0.9f;
-    player->step=0.42f;
-  }
-  correct(player,{0.0f,0.0f,0.0f});
-
-  v3 x={1.0f,0.0f,0.0f};
-  v3 y={0.0f,1.0f,0.0f};
-  v3 z={0.0f,0.0f,1.0f};
-
-  m4 ry=rotate(y,player->radians[1]);
-  x=normalize(transform_normal(ry,x));
-  z=normalize(transform_normal(ry,z));
-
-  m4 rx=rotate(x,player->radians[0]);
-  y=normalize(transform_normal(rx,y));
-  z=normalize(transform_normal(rx,z));
-
-  player->axis[0]=x;
-  player->axis[1]=y;
-  player->axis[2]=z;
+  return input->mouse.buttons[0];
 }
 
-// todo: move to camera.cc
-void controller(Input* input,Camera* camera,const Player* player)
+bool is_right_down(const Input* input)
 {
-  camera->radians[0]=player->radians[0];
-  camera->radians[1]=player->radians[1];
-  camera->radians[2]=player->radians[2];
-  camera->position=player->position;
-  update(camera);
+  return input->mouse.buttons[1];
+}
+
+bool is_left_down_once(const Input* input)
+{
+  return input->mouse.buttons_once[0];
+}
+
+bool is_right_down_once(const Input* input)
+{
+  return input->mouse.buttons_once[1];
+}
+
+bool was_escape_down_once(const Input* input)
+{
+  return input->keyboard.escape[0]&&!input->keyboard.escape[1];
 }
