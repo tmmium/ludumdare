@@ -23,9 +23,7 @@ struct Game
   Crosshair crosshair;
   Minimap minimap;
   Sprite heart;
-  v2 heart_position;
   Sprite coin;
-  v2 coin_position;
 };
 
 static void deltatime(Game* game)
@@ -77,11 +75,15 @@ bool init(Game* game,int width,int height)
   init(&game->crosshair,{width*0.5f,height*0.5f});
   if (!init(&game->minimap,{width-70.0f,4.0f})) {return false;}
 
+  init(&game->heart,&game->gui.bitmap,0,0,8,8);
+  init(&game->coin,&game->gui.bitmap,8,0,8,8);
+
   return true;
 }
 
 static void respawn(Game* game)
 {
+  reset(&game->world);
   reset(&game->player,game->world.map.spawn);
   update(&game->camera,game->player.axis,game->player.position);
 }
@@ -100,6 +102,7 @@ static void change_state(Game* game,GameState state)
     } break;
     case GAME_STATE_PLAY:
     {
+      reset(&game->world);
       set_cursor_visible(&game->input,false);
     } break;
     case GAME_STATE_END:
@@ -191,8 +194,11 @@ static bool update_play(Game* game)
   update(&game->minimap,&game->world.map.collision,game->player.position,game->dt);
   draw(&game->minimap,&game->gui);
 
+  gui_icon(&game->gui,{2.0f, 2.0f},game->heart);
+  gui_label(&game->gui,game->font_id,{12.0f,4.0f},WHITE,"%d",game->player.health);
 
-
+  gui_icon(&game->gui,{2.0f,12.0f},game->coin);
+  gui_label(&game->gui,game->font_id,{12.0f,14.0f},WHITE,"%d",game->player.score);
 
   if (was_escape_down_once(&game->input))
   {
@@ -201,10 +207,10 @@ static bool update_play(Game* game)
 
   if (game->input.is_cursor_visible)
   {
+    v2 dim={50,20};
     v2 position;
     position.x=game->gui.width*0.5f-25.0f;
     position.y=game->gui.height*0.5f-10.0f;
-    v2 dim={50,20};
     if (gui_button(&game->gui,font_id,is_clicked,position,dim,"QUIT"))
     {
       respawn(game);
