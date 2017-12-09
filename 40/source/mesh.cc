@@ -46,7 +46,7 @@ void reset(MeshCache* cache)
 
 void revert_to(MeshCache* cache,Mesh* mesh)
 {
-  
+  // todo: some idea of reverting mesh cache for map geometry
 }
 
 bool allocate(MeshCache* cache,int size,Mesh* result)
@@ -73,19 +73,19 @@ void init(Mesh* mesh,int capacity)
   mesh->texcoords=(v2*)(base+offset);
 }
 
-static void push_quad(Mesh* mesh,v3 p0,v3 p1,v3 p2,v3 p3, v2 min,v2 max)
+static void push_quad(Mesh* mesh,v3 p0,v3 p1,v3 p2,v3 p3, v4 uv)
 {
   v3* pos=mesh->positions+mesh->count;
   pos[0]=p0; pos[1]=p1; pos[2]=p2;
   pos[3]=p2; pos[4]=p3; pos[5]=p0;
 
   v2* t=mesh->texcoords+mesh->count;
-  t[0]={min.x,min.y};
-  t[1]={max.x,min.y};
-  t[2]={max.x,max.y};
-  t[3]={max.x,max.y};
-  t[4]={min.x,max.y};
-  t[5]={min.x,min.y};
+  t[0]={uv.x,uv.y};
+  t[1]={uv.z,uv.y};
+  t[2]={uv.z,uv.w};
+  t[3]={uv.z,uv.w};
+  t[4]={uv.x,uv.w};
+  t[5]={uv.x,uv.y};
 
   mesh->count+=6;
 }
@@ -125,12 +125,12 @@ void build_cube_mesh(MeshCache* cache,Mesh* mesh,const v4 poles,const v4 sides,c
     { min.x, min.y, max.z },
   };
 
-  push_quad(mesh,corners[1],corners[0],corners[4],corners[5],{poles.x,poles.y},{poles.z,poles.w}); // top
-  push_quad(mesh,corners[2],corners[3],corners[7],corners[6],{poles.x,poles.y},{poles.z,poles.w}); // bottom  
-  push_quad(mesh,corners[0],corners[1],corners[2],corners[3],{sides.x,sides.y},{sides.z,sides.w}); // north
-  push_quad(mesh,corners[4],corners[5],corners[6],corners[7],{sides.x,sides.y},{sides.z,sides.w}); // south
-  push_quad(mesh,corners[4],corners[0],corners[3],corners[7],{sides.x,sides.y},{sides.z,sides.w}); // east 
-  push_quad(mesh,corners[1],corners[5],corners[6],corners[2],{sides.x,sides.y},{sides.z,sides.w}); // west
+  push_quad(mesh,corners[1],corners[0],corners[4],corners[5],{poles.x,poles.y,poles.z,poles.w}); // top
+  push_quad(mesh,corners[2],corners[3],corners[7],corners[6],{poles.x,poles.y,poles.z,poles.w}); // bottom  
+  push_quad(mesh,corners[0],corners[1],corners[2],corners[3],{sides.x,sides.y,sides.z,sides.w}); // north
+  push_quad(mesh,corners[4],corners[5],corners[6],corners[7],{sides.x,sides.y,sides.z,sides.w}); // south
+  push_quad(mesh,corners[4],corners[0],corners[3],corners[7],{sides.x,sides.y,sides.z,sides.w}); // east 
+  push_quad(mesh,corners[1],corners[5],corners[6],corners[2],{sides.x,sides.y,sides.z,sides.w}); // west
 }
 
 void build_finish_mesh(MeshCache* cache,Mesh* mesh)
@@ -260,30 +260,37 @@ void build_world_mesh(MeshCache* cache,Mesh* mesh,const Bitmap* bitmap)
         { min.x, min.y, max.z },
       };
 
+      int rnd=0;
       // floor
-      push_quad(mesh,cube[2],cube[3],cube[7],cube[6], {uvs[0].x,uvs[0].y},{uvs[0].z,uvs[0].w});
+      rnd=randi()%4+0;
+       push_quad(mesh,cube[2],cube[3],cube[7],cube[6], tex[rnd]);
       // roof
-      push_quad(mesh,cube[1],cube[0],cube[4],cube[5], {uvs[2].x,uvs[2].y},{uvs[2].z,uvs[2].w});
+      rnd=randi()%4+8;
+      push_quad(mesh,cube[1],cube[0],cube[4],cube[5], tex[rnd]);
 
       // north
       if (is_wall(bitmap,x,y-1))
       {
-        push_quad(mesh,cube[0],cube[1],cube[2],cube[3], {uvs[1].x,uvs[1].y},{uvs[1].z,uvs[1].w});
+        rnd=randi()%4+4;
+        push_quad(mesh,cube[0],cube[1],cube[2],cube[3], tex[rnd]);
       }
       // south
       if (is_wall(bitmap,x,y+1))
       {
-        push_quad(mesh,cube[4],cube[5],cube[6],cube[7], {uvs[1].x,uvs[1].y},{uvs[1].z,uvs[1].w});
+        rnd=randi()%4+4;
+        push_quad(mesh,cube[4],cube[5],cube[6],cube[7], tex[rnd]);
       }
       // east
       if (is_wall(bitmap,x-1,y))
       { 
-        push_quad(mesh,cube[4],cube[0],cube[3],cube[7], {uvs[1].x,uvs[1].y},{uvs[1].z,uvs[1].w});
+        rnd=randi()%4+4;
+        push_quad(mesh,cube[4],cube[0],cube[3],cube[7], tex[rnd]);
       }
       // west
       if (is_wall(bitmap,x+1,y))
       {
-        push_quad(mesh,cube[1],cube[5],cube[6],cube[2], {uvs[1].x,uvs[1].y},{uvs[1].z,uvs[1].w});
+        rnd=randi()%4+4;
+        push_quad(mesh,cube[1],cube[5],cube[6],cube[2], tex[rnd]);
       }
     }
   }

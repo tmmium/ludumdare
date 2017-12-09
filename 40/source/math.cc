@@ -1,5 +1,6 @@
 // math.cc
 
+#include <time.h>
 #include <math.h>
 
 const v4 BLACK={0.f,0.f,0.f,1.f};
@@ -11,6 +12,13 @@ const float kPI2=kPI*2.0f;
 inline float minf(const float a,const float b) {return a<b?a:b;}
 inline float maxf(const float a,const float b) {return a>b?a:b;}
 inline float signf(const float a) {return a<0.0f?-1.f:1.f;}
+
+inline int randi() 
+{
+  static unsigned long int next = 1;
+  next = next * 1103515245 + 12345;
+  return (unsigned int)(next/65536) % 32768;
+}
 
 inline v2 operator+(const v2& l,const v2& r) {return {l.x+r.x,l.y+r.y};}
 inline v2 operator-(const v2& l,const v2& r) {return {l.x-r.x,l.y-r.y};}

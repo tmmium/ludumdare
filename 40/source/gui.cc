@@ -205,19 +205,6 @@ struct GUI
   FontCache font_cache;
   UIWidgetCache widget_cache;
   UIStringCache string_cache;
-
-#if 0
-  bool is_crosshair_visible;
-
-  float minimap_refresh;
-  float minimap_timer;
-  Bitmap minimap;
-  int mini_texture;
-  Sprite minisprite;
-  v2 minimap_position;
-  int player_score;
-  int player_health;
-#endif
 };
 
 bool init(GUI* gui,const char* filename,int width,int height)
@@ -242,29 +229,7 @@ bool init(GUI* gui,const char* filename,int width,int height)
   gui->font_cache=font_cache;
   gui->widget_cache=widget_cache;
   gui->string_cache=string_cache;
-#if 0
-  gui->is_crosshair_visible=false;
-  init(&gui->crosshair,&gui->bitmap,59,59,5,5);
-  gui->crosshair_position={width*0.5f,height*0.5f};
 
-  init(&gui->heart,&gui->bitmap,0,15,8,8);
-  gui->heart_position={2.0f,2.0f};
-
-  init(&gui->coin,&gui->bitmap,8,15,8,8);
-  gui->coin_position={2.0f,12.0f};
-
-  gui->minimap_refresh=0.2f;
-  gui->minimap_timer=0.0f;
-  create(&gui->minimap,16,16);
-  gui->mini_texture=bq_create_texture(16,16,NULL);
-  init(&gui->minisprite,&gui->minimap,0,0,16,16);
-  gui->minisprite.dim.x*=4.0f;
-  gui->minisprite.dim.y*=4.0f;
-  gui->minimap_position={width-70.0f,4.0f};
-
-  gui->player_score=0;
-  gui->player_health=0;
-#endif
   return true;
 }
 
@@ -362,76 +327,15 @@ static void draw_widgets(GUI* gui)
   }
 }
 
-#if 0
-void update(GUI* gui,const Input* input,const World* world,const Player* player,GameState state,float dt)
-{
-  gui->is_crosshair_visible=!input->is_cursor_visible;
-  gui->minimap_timer-=dt;
-  if (gui->minimap_timer<0.0f)
-  {
-    gui->minimap_timer=gui->minimap_refresh;
-    blit(&gui->minimap,&world->map.collision,(int)player->position.x,(int)player->position.z);
-    upload(&gui->minimap,gui->mini_texture);
-  }
-  gui->player_score=player->score;
-  gui->player_health=player->health;
-}
-#endif
-
 void draw(GUI* gui)
 {
   bq_prepare2d();
   bq_disable_fog();
   bq_projection(gui->projection);
   draw_widgets(gui);
-  
-#if 0
-  bq_bind_texture(gui->mini_texture);
-  r_draw(&gui->minisprite,gui->minimap_position);
-
-  bq_bind_texture(gui->texture);
-
-  if (state==GAME_STATE_PLAY&&gui->is_crosshair_visible)
-    draw(&gui->crosshair,gui->crosshair_position,{1.0f,1.0f,1.0f,1.0f});
-
-  if (state==GAME_STATE_END)
-  {
-    const char* game_over_text="GAME OVER";
-    float x=(gui->width-text_width(&gui->font,game_over_text))*0.5f;
-    float y=(gui->height-text_height(&gui->font,game_over_text))*0.5f-30.0f;
-    draw(&gui->font,{x,y+1.0f},{0.0f,0.0f,0.0f,1.0f},game_over_text);
-    draw(&gui->font,{x,y},{1.0f,1.0f,1.0f,1.0f},game_over_text);
-
-    char text[64]={};
-    sprintf_s<64>(text,"SCORE: %d",gui->player_score);
-    draw(&gui->font,{x,y+11.0f},{0.0f,0.0f,0.0f,1.0f},text);
-    draw(&gui->font,{x,y+10.0f},{1.0f,1.0f,1.0f,1.0f},text);
-  }
-  
-  if (state==GAME_STATE_PLAY)
-  {
-    char text[64]={};
-    sprintf_s<64>(text,"%d",gui->player_health);
-    v2 o=gui->heart_position;
-    o.x+=10.0f;
-    o.y+=1.0f;
-
-    draw(&gui->font,{o.x,o.y+1},{0.0f,0.0f,0.0f,1.0f},text);
-    draw(&gui->font,{o.x,o.y},{1.0f,1.0f,1.0f,1.0f},text);
-    draw(&gui->heart,gui->heart_position,{1.0f,1.0f,1.0f,1.0f});
-
-    sprintf_s<64>(text,"%d",gui->player_score);
-    o=gui->coin_position;
-    o.x+=10.0f;
-    o.y+=1.0f;
-
-    draw(&gui->font,{o.x,o.y+1},{0.0f,0.0f,0.0f,1.0f},text);
-    draw(&gui->font,{o.x,o.y},{1.0f,1.0f,1.0f,1.0f},text);
-    draw(&gui->coin,gui->coin_position,{1.0f,1.0f,1.0f,1.0f});
-  }
-#endif
 }
 
+#if 0
 static void draw_debug_info(Font* font,Input* input,Player* player)
 {
   char msg[128];
@@ -441,3 +345,4 @@ static void draw_debug_info(Font* font,Input* input,Player* player)
     player->y_bob);
   draw(font,{2.0f,350.0f},{0.0f,0.0f,0.0f,1.0f},msg);
 }
+#endif
