@@ -2,25 +2,39 @@
 
 struct Font
 {
+  int texture;
   float width;
   float height;
   v2 glyphs[64];
 };
 
-void init(Font* font)
+bool init(Font* font,const char* filename)
 {
+  Bitmap bitmap;
+  if (!init(&bitmap,filename)) {return false;}
+  int texture=bq_create_texture(bitmap.width,bitmap.height,bitmap.data);
+  int width=bitmap.width;
+  int height=bitmap.height;
+  destroy(&bitmap);
+  if (texture==0) {return false;}
+
+  font->texture=texture;
   font->width=3.0f;
   font->height=5.0f;
-  const float iw=1.0f/64.0f;
+  const float iw=1.0f/(float)width;
+  const float ih=1.0f/(float)height;
+  // todo: make all 'fonts' use same layout
   for (int y=0,i=0;y<3;y++)
   {
     for (int x=0;x<21;x++)
     {
       float s=(x*3.0f)*iw;
-      float t=(y*5.0f)*iw;
+      float t=(y*5.0f)*ih;
       font->glyphs[i++]={s,t};
     }
   }
+
+  return true;
 }
 
 #define MAX_VERTICES_FONT 1024
@@ -54,6 +68,8 @@ void draw(const Font* font,const v2 position,const v4 color,const char* str)
 
     x+=w+1.0f;
   }
+
+  bq_bind_texture(font->texture);
   bq_render2d(color,k,p,t);
 }
 
@@ -96,11 +112,24 @@ v2 text_offset(const Font* font,const v2 dim,const char* text)
   return res;
 }
 
-void draw_centered(const Font* font,const v2 dim,const v2 offset,const v4 color,const char* str)
+#define MAX_FONT_COUNT 8
+struct FontCache
 {
-  v2 position=text_offset(font,dim,str)+offset;
-  v2 offseted=position;
-  offseted.x+=1; offseted.y+=1;
-  draw(font,offseted,{0.0f,0.0f,0.0f,1.0f},str);
-  draw(font,position,color,str);
+  int capacity;
+  int count;
+  Font fonts[MAX_FONT_COUNT];
+};
+
+bool init(FontCache* cache)
+{
+  cache->capacity=MAX_FONT_COUNT;
+  cache->count=0;
+  return true;
+}
+
+Font* allocate(FontCache* cache)
+{
+  assert(cache->count<cache->capacity);
+  Font* result=cache->fonts+cache->count++;
+  return result;
 }

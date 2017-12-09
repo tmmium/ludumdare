@@ -11,6 +11,7 @@
 struct Mouse
 {
   v2 look_delta;
+  v2 movement;
   v2 position;
   bool buttons[2];
   bool buttons_once[2];
@@ -20,8 +21,9 @@ struct Mouse
 
 void init(Mouse* mouse)
 {
-  mouse->position=bq_mouse_position();
   mouse->look_delta={0.0f,0.0f};
+  mouse->movement=bq_mouse_movement();
+  mouse->position=bq_mouse_position();
   mouse->buttons[0]=bq_mouse_button(0);
   mouse->buttons[1]=bq_mouse_button(1);
   mouse->buttons_once[0]=false;
@@ -32,15 +34,27 @@ void init(Mouse* mouse)
 
 void process(Mouse* mouse)
 {
-  v2 pos=bq_mouse_position();
-  mouse->look_delta=pos-mouse->position;
-  mouse->position=pos;
+  v2 movement=bq_mouse_movement();
+  mouse->look_delta=movement-mouse->movement;
+  mouse->movement=movement;
+  v2 position=bq_mouse_position();
+  mouse->position=position;
   bool is_left_button_down=bq_mouse_button(0);
   bool is_right_button_down=bq_mouse_button(1);
   mouse->buttons_once[0]=!mouse->buttons[0]&&is_left_button_down;
   mouse->buttons_once[1]=!mouse->buttons[1]&&is_right_button_down;
   mouse->buttons[0]=is_left_button_down;
   mouse->buttons[1]=is_right_button_down;
+}
+
+v2 mouse_position_scaled(int width,int height)
+{
+  v2 ss={(float)width,(float)height};
+  v2 ws=bq_window_size();
+  v2 res=bq_mouse_position(); 
+  res.x=res.x*(ss.x/ws.x);
+  res.y=res.y*(ss.y/ws.y);
+  return res; 
 }
 
 void mouse_sensitivity(Mouse* mouse,float sensitivity)

@@ -58,10 +58,10 @@ BQ_API void bq_center_cursor();
 // todo: mouse_position should be relative to window
 // todo: mouse_position (as now) should be mouse_location or something
 BQ_API v2   bq_mouse_position();
+BQ_API v2   bq_mouse_movement();
 BQ_API int  bq_mouse_button(int index);
 BQ_API int  bq_keyboard(int index);
 
-BQ_API v2   bq_mouse_position_in_window();
 BQ_API v2   bq_window_size();
 
 BQ_API int bq_file_size(const char* filename);

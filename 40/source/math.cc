@@ -2,6 +2,9 @@
 
 #include <math.h>
 
+const v4 BLACK={0.f,0.f,0.f,1.f};
+const v4 WHITE={1.f,1.f,1.f,1.f};
+
 const float kPI=3.14159265359f;
 const float kPI2=kPI*2.0f;
 

@@ -5,6 +5,7 @@
 #define _CRT_SECURE_NO_WARNINGS
 #include <string.h>
 #include <malloc.h>
+#include <assert.h>
 
 #include "states.h"
 #include "math.cc"
@@ -19,13 +20,14 @@
 #include "entity.cc"
 #include "world.cc"
 #include "gui.cc"
+#include "minimap.cc"
+#include "crosshair.cc"
 #include "game.cc"
 #include "editor.cc"
 
 int __stdcall WinMain(void*,void*,char*,int)
 {
   const int width=640,height=360;
-
   if (!bq_init("LD40: \"The more you have, the worse it is...\"",1280,720)) 
   {
     bq_log("[game] error: something bad happened, looks like you can't start consuming broccoli!");

@@ -43,6 +43,7 @@ static int global_window_height=0;
 static IDirectSound* global_sound_device=0;
 static IDirectSoundBuffer* global_primary_buffer=0;
 static v2 global_mouse_position={0};
+static v2 global_mouse_movement={0};
 static int global_mouse_buttons[2]={0};
 static int global_keyboard_keys[256]={0};
 
@@ -91,8 +92,8 @@ static LRESULT CALLBACK win_window_proc(HWND hWnd,UINT uMsg,WPARAM wParam,LPARAM
       RAWINPUT* raw=(RAWINPUT*)buf;
       if (raw->header.dwType==RIM_TYPEMOUSE)
       {
-        global_mouse_position.x+=raw->data.mouse.lLastX; 
-        global_mouse_position.y+=raw->data.mouse.lLastY;
+        global_mouse_movement.x+=raw->data.mouse.lLastX; 
+        global_mouse_movement.y+=raw->data.mouse.lLastY;
         if ((raw->data.mouse.usButtonFlags&RI_MOUSE_LEFT_BUTTON_DOWN)!=0)
           global_mouse_buttons[0]=1;
         if ((raw->data.mouse.usButtonFlags&RI_MOUSE_LEFT_BUTTON_UP)!=0)
@@ -103,12 +104,12 @@ static LRESULT CALLBACK win_window_proc(HWND hWnd,UINT uMsg,WPARAM wParam,LPARAM
           global_mouse_buttons[1]=0;
       }
     } break;
-#if 0
     case WM_MOUSEMOVE: 
     {
       global_mouse_position.x=(float)GET_X_LPARAM(lParam);
       global_mouse_position.y=(float)GET_Y_LPARAM(lParam);
     } break;
+#if 0
     case WM_LBUTTONDOWN:
     case WM_LBUTTONUP:
     {
@@ -720,6 +721,11 @@ v2 bq_mouse_position()
   return global_mouse_position;
 }
 
+v2 bq_mouse_movement()
+{
+  return global_mouse_movement;
+}
+
 int bq_mouse_button(int index)
 {
   if (index<0||index>1) {return 0;}
@@ -732,6 +738,7 @@ int bq_keyboard(int index)
   return global_keyboard_keys[index];
 }
 
+#if 0
 v2 bq_mouse_position_in_window()
 {
   v2 res;
@@ -742,6 +749,7 @@ v2 bq_mouse_position_in_window()
   res.y=pt.y;
   return res;
 }
+#endif
 
 v2 bq_window_size()
 {
