@@ -50,7 +50,7 @@ bool init(Game* game,int width,int height)
     bq_log("[game] error: could not load audio\n");
     return false;
   }
-  if (!init(&game->gui,"assets/main2.png",width,height))
+  if (!init(&game->gui,"assets/hud.png",width,height))
   {
     bq_log("[game] error: could not load gui\n");
     return false;
@@ -60,7 +60,7 @@ bool init(Game* game,int width,int height)
     bq_log("[game] error: could create mesh cache\n");
     return false;
   }
-  if (!init(&game->world,&game->mesh_cache,"assets/material/main.png","assets/map/first.png"))
+  if (!init(&game->world,&game->mesh_cache,"assets/map/first.png"))
   {
     bq_log("[game] error: could not load world\n");
     return false;

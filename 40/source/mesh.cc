@@ -61,18 +61,6 @@ bool allocate(MeshCache* cache,int size,Mesh* result)
   return true;
 }
 
-void init(Mesh* mesh,int capacity)
-{
-  bq_log("[game] mesh: capacity %d\n",capacity);
-  int offset=sizeof(v3)*capacity;
-  int size=offset+sizeof(v2)*capacity;
-  char* base=(char*)malloc(size);
-  mesh->capacity=capacity;
-  mesh->count=0;
-  mesh->positions=(v3*)base;
-  mesh->texcoords=(v2*)(base+offset);
-}
-
 static void push_quad(Mesh* mesh,v3 p0,v3 p1,v3 p2,v3 p3, v4 uv)
 {
   v3* pos=mesh->positions+mesh->count;
@@ -214,14 +202,6 @@ void build_world_mesh(MeshCache* cache,Mesh* mesh,const Bitmap* bitmap)
     0.25f,0.75f,0.50f,1.00f,
     0.50f,0.75f,0.75f,1.00f,
     0.75f,0.75f,1.00f,1.00f,
-  };
-
-  const v4 uvs[]=
-  {
-    0.00f, 0.0f, 0.25f, 0.25f, // floor
-    0.25f, 0.0f, 0.50f, 0.25f, // wall
-    0.50f, 0.0f, 0.75f, 0.25f, // ceiling
-    0.75f, 0.0f, 1.00f, 0.25f  // end?
   };
 
   int num_tiles=0;

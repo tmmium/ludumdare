@@ -69,7 +69,8 @@ void draw(const Map* map)
 
 struct World
 {
-  int texture;
+  int world_texture;
+  int props_texture;
   Mesh meshes[ENTITY_TYPE_COUNT];
   // entity_cache
   int num_entities;
@@ -85,13 +86,18 @@ void reset(World* world)
   }
 }
 
-bool init(World* world,MeshCache* cache,const char* texname,const char* mapname)
+bool init(World* world,MeshCache* cache,const char* mapname)
 {
   Bitmap bitmap;
-  if (!init(&bitmap,texname)) {return false;}
-  int texture=bq_create_texture(bitmap.width,bitmap.height,bitmap.data);
+  if (!init(&bitmap,"assets/world.png")) {return false;}
+  int world_texture=bq_create_texture(bitmap.width,bitmap.height,bitmap.data);
   destroy(&bitmap);
-  if (texture==0) {return false;}
+  if (world_texture==0) {return false;}
+
+  if (!init(&bitmap,"assets/props.png")) {return false;}
+  int props_texture=bq_create_texture(bitmap.width,bitmap.height,bitmap.data);
+  destroy(&bitmap);
+  if (props_texture==0) {return false;}
 
   Map map;
   if (!init(cache,mapname,&map)) {return false;}
@@ -124,7 +130,8 @@ bool init(World* world,MeshCache* cache,const char* texname,const char* mapname)
     }
   }
 
-  world->texture=texture;
+  world->world_texture=world_texture;
+  world->props_texture=props_texture;
   build_finish_mesh(cache,world->meshes+ENTITY_FINISH);
   build_pickup_mesh(cache,world->meshes+ENTITY_PICKUP);
   build_spike_mesh(cache,world->meshes+ENTITY_SPIKE);
@@ -286,9 +293,11 @@ void draw(const World* world,const Camera* camera,GameState state)
   bq_enable_fog({0,0,0,1},0.5f,1.0f,10.0f);
   bq_projection(camera->proj);
   bq_view(camera->view);
-  bq_bind_texture(world->texture);
 
+  bq_bind_texture(world->world_texture);
   draw(&world->map);
+
+  bq_bind_texture(world->props_texture);
   for (int i=0;i<world->num_entities;i++)
   {
     const Entity* entity=world->entities+i;
