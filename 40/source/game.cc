@@ -5,14 +5,16 @@
 struct Game
 {
   GameState state;
+  GameState prev_state;
   int width;
   int height;
   unsigned tick;
   float dt;
   Input input;
-  MeshCache mesh_cache;
+  Editor editor;
   Audio audio;
   GUI gui;
+  MeshCache mesh_cache;
   World world;
   Camera camera;
   Player player;
@@ -39,12 +41,14 @@ static void deltatime(Game* game)
 bool init(Game* game,int width,int height)
 {
   game->state=GAME_STATE_LOADING;
+  game->state=GAME_STATE_LOADING;
   game->width=width;
   game->height=height;
   game->tick=bq_get_ticks();
   deltatime(game);
 
   init(&game->input);
+  init(&game->editor,width,height);
   if (!init(&game->audio))
   {
     bq_log("[game] error: could not load audio\n");
@@ -109,8 +113,13 @@ static void change_state(Game* game,GameState state)
     {
       set_cursor_visible(&game->input,true);
     } break;
+    case GAME_STATE_EDITOR:
+    {
+      set_cursor_visible(&game->input,true);
+    } break;
   }
 
+  game->prev_state=game->state;
   game->state=state;
 }
 
@@ -267,6 +276,18 @@ bool update(Game* game)
   process(&game->input,game->state);
   reset(&game->gui);
 
+  if (was_editor_down_once(&game->input))
+  {
+    if (game->state==GAME_STATE_EDITOR)
+    {
+      change_state(game,game->prev_state);
+    }
+    else 
+    {
+      change_state(game,GAME_STATE_EDITOR);
+    }
+  }
+
   bool result=false;
   switch(game->state)
   {
@@ -274,12 +295,16 @@ bool update(Game* game)
     case GAME_STATE_MENU:    { result=update_menu(game); } break;
     case GAME_STATE_PLAY:    { result=update_play(game); } break;
     case GAME_STATE_END:     { result=update_end(game); } break;
+    case GAME_STATE_EDITOR:  { result=update_editor(&game->editor,&game->input,&game->gui,game->dt);}
   }
   return result;
 }
 
 void draw(Game* game)
 {
-  draw(&game->world,&game->camera,game->state);
+  if (game->state!=GAME_STATE_EDITOR)
+    draw(&game->world,&game->camera,game->state);
+  else
+    draw(&game->editor);
   draw(&game->gui);
 }

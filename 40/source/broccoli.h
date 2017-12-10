@@ -45,6 +45,7 @@ BQ_API void bq_pop_transform();
 
 BQ_API void bq_prepare2d();
 BQ_API void bq_render2d(const v4 color,int count,const v2* positions,const v2* texcoords);
+BQ_API void bq_render2d_lines(const v4 color,int count,const v2* positions);
 
 BQ_API void bq_prepare3d();
 BQ_API void bq_render3d(const v4 color,int count,const v3* positions,const v2* texcoords,const v3* normals);
@@ -60,6 +61,7 @@ BQ_API void bq_center_cursor();
 BQ_API v2   bq_mouse_position();
 BQ_API v2   bq_mouse_movement();
 BQ_API int  bq_mouse_button(int index);
+BQ_API v2   bq_mouse_wheel();
 BQ_API int  bq_keyboard(int index);
 
 BQ_API v2   bq_window_size();

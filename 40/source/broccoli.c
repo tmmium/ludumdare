@@ -44,6 +44,7 @@ static IDirectSound* global_sound_device=0;
 static IDirectSoundBuffer* global_primary_buffer=0;
 static v2 global_mouse_position={0};
 static v2 global_mouse_movement={0};
+static v2 global_mouse_wheel={0};
 static int global_mouse_buttons[2]={0};
 static int global_keyboard_keys[256]={0};
 
@@ -108,6 +109,10 @@ static LRESULT CALLBACK win_window_proc(HWND hWnd,UINT uMsg,WPARAM wParam,LPARAM
     {
       global_mouse_position.x=(float)GET_X_LPARAM(lParam);
       global_mouse_position.y=(float)GET_Y_LPARAM(lParam);
+    } break;
+    case WM_MOUSEWHEEL:
+    {
+      global_mouse_wheel.y=(float)GET_WHEEL_DELTA_WPARAM(wParam)/(float)WHEEL_DELTA;
     } break;
 #if 0
     case WM_LBUTTONDOWN:
@@ -299,6 +304,9 @@ int bq_process()
   char title[128];
   sprintf_s(title,128,"%s [%ums]",global_window_title,diff);
   SetWindowTextA(global_window_handle,title);
+
+  global_mouse_wheel.x=0.0f;
+  global_mouse_wheel.y=0.0f;
 
   MSG msg={0};
   while(PeekMessage(&msg,NULL,0,0,PM_REMOVE)) 
@@ -669,6 +677,16 @@ void bq_render2d(const v4 color,int count,const v2* positions,const v2* texcoord
   glDrawArrays(GL_TRIANGLES,0,count);
 }
 
+void bq_render2d_lines(const v4 color,int count,const v2* positions)
+{
+  if (count<=0||!positions) {return;}
+  glDisableClientState(GL_TEXTURE_COORD_ARRAY);
+  glColor4f(color.x,color.y,color.z,color.w);
+  glVertexPointer(2,GL_FLOAT,sizeof(v2),positions);
+  glDrawArrays(GL_LINES,0,count);
+  glEnableClientState(GL_TEXTURE_COORD_ARRAY);
+}
+
 void bq_prepare3d()
 {
   glEnable(GL_DEPTH_TEST);
@@ -730,6 +748,11 @@ int bq_mouse_button(int index)
 {
   if (index<0||index>1) {return 0;}
   return global_mouse_buttons[index];
+}
+
+v2 bq_mouse_wheel()
+{
+  return global_mouse_wheel;
 }
 
 int bq_keyboard(int index)

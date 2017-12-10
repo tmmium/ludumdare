@@ -15,7 +15,7 @@ pushd build\
 del *.pdb > NUL 2> NUL
 
 ::rc /fo icon.res ..\misc\resource.rc
-cl %CommonCompilerFlags% -TC ..\source\broccoli.c -LD /link -incremental:no -opt:ref 
+::cl %CommonCompilerFlags% -TC ..\source\broccoli.c -LD /link -incremental:no -opt:ref 
 cl %CommonCompilerFlags% ..\source\main.cc /link %CommonLinkerFlags% /out:tmyhtwii.exe 
 
 popd

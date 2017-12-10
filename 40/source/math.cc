@@ -4,6 +4,7 @@
 #include <math.h>
 
 const v4 BLACK={0.f,0.f,0.f,1.f};
+const v4 GRAY ={0.6f,0.6f,0.6f,1.f};
 const v4 WHITE={1.f,1.f,1.f,1.f};
 
 const float kPI=3.14159265359f;
@@ -105,12 +106,22 @@ inline m4 operator*(const m4& a, const m4& b)
   res.w.w=a.w.x*b.x.w+a.w.y*b.y.w+a.w.z*b.z.w+a.w.w*b.w.w;
   return res;
 }
+
 inline m4 translate(const v3& position)
 {
   m4 res=bq_identity();
   res.w.x=position.x;
   res.w.y=position.y;
   res.w.z=position.z;
+  return res;
+}
+
+inline m4 scale(const v3& scale)
+{
+  m4 res=bq_identity();
+  res.x.x=scale.x;
+  res.y.y=scale.y;
+  res.z.z=scale.z;
   return res;
 }
 

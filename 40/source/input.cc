@@ -13,6 +13,7 @@ struct Mouse
   v2 look_delta;
   v2 movement;
   v2 position;
+  v2 wheel_delta;
   bool buttons[2];
   bool buttons_once[2];
   float sensitivity;
@@ -24,6 +25,7 @@ void init(Mouse* mouse)
   mouse->look_delta={0.0f,0.0f};
   mouse->movement=bq_mouse_movement();
   mouse->position=bq_mouse_position();
+  mouse->wheel_delta={0.0f,0.0f};
   mouse->buttons[0]=bq_mouse_button(0);
   mouse->buttons[1]=bq_mouse_button(1);
   mouse->buttons_once[0]=false;
@@ -45,6 +47,7 @@ void process(Mouse* mouse)
   mouse->buttons_once[1]=!mouse->buttons[1]&&is_right_button_down;
   mouse->buttons[0]=is_left_button_down;
   mouse->buttons[1]=is_right_button_down;
+  mouse->wheel_delta=bq_mouse_wheel();
 }
 
 v2 mouse_position_scaled(int width,int height)
@@ -91,6 +94,7 @@ struct Keyboard
   bool backward;
   bool left;
   bool right;
+  bool editor_mode[2]; // F1
 };
 
 void init(Keyboard* keyboard)
@@ -102,6 +106,8 @@ void init(Keyboard* keyboard)
   keyboard->backward=false;
   keyboard->left=false;
   keyboard->right=false;
+  keyboard->editor_mode[0]=false;
+  keyboard->editor_mode[1]=false;
 }
 
 void process(Keyboard* keyboard)
@@ -113,6 +119,8 @@ void process(Keyboard* keyboard)
   keyboard->backward=bq_keyboard(VK_BACKWARD);
   keyboard->left=bq_keyboard(VK_STRAFE_LEFT);
   keyboard->right=bq_keyboard(VK_STRAFE_RIGHT);
+  keyboard->editor_mode[0]=keyboard->editor_mode[1];
+  keyboard->editor_mode[1]=bq_keyboard(VK_F1);
 }
 
 struct Input
@@ -169,4 +177,9 @@ bool is_right_down_once(const Input* input)
 bool was_escape_down_once(const Input* input)
 {
   return input->keyboard.escape[0]&&!input->keyboard.escape[1];
+}
+
+bool was_editor_down_once(const Input* input)
+{
+  return input->keyboard.editor_mode[0]&&!input->keyboard.editor_mode[1];
 }

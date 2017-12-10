@@ -269,6 +269,11 @@ void gui_group(GUI* gui,int texture)
   push_group(&gui->widget_cache,texture);
 }
 
+void gui_pop_group(GUI* gui)
+{
+  push_group(&gui->widget_cache,gui->texture);
+}
+
 void gui_label(GUI* gui,int font_id,const v2 position,const v4 color,const char* format, ...)
 {
   int len=(int)strlen(format)+16;
@@ -286,7 +291,6 @@ void gui_label(GUI* gui,int font_id,const v2 position,const v4 color,const char*
 void gui_icon(GUI* gui,const v2 position,const Sprite sprite)
 {
   push_icon(&gui->widget_cache,position,sprite);
-  push_group(&gui->widget_cache,gui->texture);
 }
 
 bool gui_button(GUI* gui,int font_id,bool down,const v2 position,const v2 dim,const char* text)
@@ -315,6 +319,27 @@ bool gui_button(GUI* gui,int font_id,bool down,const v2 position,const v2 dim,co
   push_button(&gui->widget_cache,position,state,sprite);
   push_label(&gui->widget_cache,font,position+offset,{0.0f,0.0f,0.0f,1.0f},text);
   push_group(&gui->widget_cache,gui->texture);
+
+  return inside&&down;
+}
+
+bool gui_button(GUI* gui,bool down,const v2 position,const v2 dim,const Sprite sprite)
+{
+  v2 mouse=mouse_position_scaled(gui->width,gui->height);
+  
+  bool inside=false;
+  UIButtonState state=BUTTON_NORMAL;
+  if (overlap(mouse,position,dim))
+  {
+    inside=true; 
+    state=BUTTON_HOVER;
+  }
+  if (down&&inside) 
+  {
+    state=BUTTON_DOWN;
+  }
+
+  push_button(&gui->widget_cache,position,state,sprite);
 
   return inside&&down;
 }

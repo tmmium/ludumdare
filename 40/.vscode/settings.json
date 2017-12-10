@@ -17,6 +17,7 @@
     "xtr1common": "cpp",
     "xlocnum": "c",
     "system_error": "cpp",
-    "initializer_list": "cpp"
+    "initializer_list": "cpp",
+    "cmath": "cpp"
   }
 }

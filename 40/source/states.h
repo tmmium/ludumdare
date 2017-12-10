@@ -7,6 +7,7 @@ enum GameState
   GAME_STATE_OPTIONS,
   GAME_STATE_PLAY,
   GAME_STATE_END,
+  GAME_STATE_EDITOR,
 };
 
 static const char* game_state_string(GameState state)
@@ -18,6 +19,7 @@ static const char* game_state_string(GameState state)
     case GAME_STATE_OPTIONS: return "game_state_options"; break;
     case GAME_STATE_PLAY: return "game_state_play"; break;
     case GAME_STATE_END: return "game_state_end"; break;
+    case GAME_STATE_EDITOR: return "editor"; break;
   }
   return "GAME_STATE_UNKNOWN";
 }
