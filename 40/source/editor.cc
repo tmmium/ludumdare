@@ -12,7 +12,7 @@ static const char* global_editor_modes[EDITOR_MODE_COUNT]=
 {
   "SELECT",
   "ERASE",
-  "PAINT",
+  "PAINT:",
 };
 
 enum EditorIcon
@@ -25,8 +25,8 @@ enum EditorIcon
   EDITOR_ICON_SELECT,
   EDITOR_ICON_ERASE,
   EDITOR_ICON_PAINT,
+  EDITOR_ICON_UNUSED0,
 
-  EDITOR_ICON_VOID,
   EDITOR_ICON_FLOOR,
   EDITOR_ICON_PLAYER,
   EDITOR_ICON_EXIT,
@@ -43,7 +43,6 @@ enum EditorIcon
 
 enum BrushType
 {
-  BRUSH_VOID,
   BRUSH_FLOOR,
   BRUSH_PLAYER,
   BRUSH_EXIT,
@@ -58,7 +57,6 @@ enum BrushType
 
 static const char* global_brush_modes[]=
 {
-  "VOID",
   "FLOOR",
   "PLAYER",
   "EXIT",
@@ -73,7 +71,6 @@ static const char* global_brush_modes[]=
 
 enum TileType
 {
-  TILE_VOID,
   TILE_FLOOR,
   TILE_PLAYER,
   TILE_EXIT,
@@ -84,11 +81,11 @@ enum TileType
   TILE_DOOR,
   TILE_TELEPORT,
   TILE_TRIGGER,
+  TILE_VOID,
 };
 
 static const char* global_tile_types[]=
 {
-  "VOID",
   "FLOOR",
   "PLAYER",
   "EXIT",
@@ -99,6 +96,7 @@ static const char* global_tile_types[]=
   "DOOR",
   "TELEPORT",
   "TRIGGER",
+  "VOID",
 };
 
 struct MapTile
@@ -204,7 +202,7 @@ bool init(Editor* editor,int width,int height)
   }
 
   editor->mode=EDITOR_MODE_SELECT;
-  editor->brush=BRUSH_VOID;
+  editor->brush=BRUSH_FLOOR;
   editor->selected_index=-1;
   editor->selected_x=-1;
   editor->selected_y=-1;
@@ -280,7 +278,7 @@ bool update_editor(Editor* editor,const Input* input,GUI* gui,float dt)
   gui_group(gui,editor->texture);
 
   // new, load, save, save-as, select, paint, erase
-  for (int i=0;i<EDITOR_ICON_VOID;i++)
+  for (int i=0;i<EDITOR_ICON_UNUSED0;i++)
   {
     v2 pos=editor->toolbar_position+offset;
     if (gui_button(gui,is_clicked,pos,dim,editor->icons[i]))
@@ -294,12 +292,12 @@ bool update_editor(Editor* editor,const Input* input,GUI* gui,float dt)
   }
   if (editor->mode==EDITOR_MODE_PAINT)
   {
-    for (int i=EDITOR_ICON_VOID;i<EDITOR_ICON_COUNT;i++)
+    for (int i=EDITOR_ICON_FLOOR;i<EDITOR_ICON_COUNT;i++)
     {
       v2 pos=editor->toolbar_position+offset;
       if (gui_button(gui,is_clicked,pos,dim,editor->icons[i]))
       {
-        editor->brush=(BrushType)(i-EDITOR_ICON_VOID);
+        editor->brush=(BrushType)(i-EDITOR_ICON_FLOOR);
       }
       offset.x+=icon_width;
     }  
@@ -314,22 +312,23 @@ bool update_editor(Editor* editor,const Input* input,GUI* gui,float dt)
   if (editor->mode==EDITOR_MODE_PAINT)
   {
     v2 lpos=pos;
-    lpos.x+=text_width(gui,0,global_editor_modes[editor->mode])+8.0f;
+    lpos.x+=text_width(gui,0,global_editor_modes[editor->mode])+2.0f;
     gui_label(gui,0,lpos,WHITE,global_brush_modes[editor->brush]);
   }
   pos.y+=10;
   gui_label(gui,0,pos,WHITE,"#%d (X:%d Y:%d)",editor->selected_index,editor->selected_x,editor->selected_y);
 
+  if (editor->selected_index!=-1)
+  {
+    pos.y+=10;
+    MapTile* tile=editor->tiles+editor->selected_index;
+    gui_label(gui,0,pos,WHITE,"TILE: %s",global_tile_types[tile->type]);
+  }
+
   // select, paint and erase logic
   if (editor->mode==EDITOR_MODE_SELECT)
   {
-    pos.y+=10;
-    if (editor->selected_index!=-1)
-    {
-      MapTile* tile=editor->tiles+editor->selected_index;
-      gui_label(gui,0,pos,WHITE,"TILE: %s",global_tile_types[tile->type]);
-
-    }
+    
   }
   else if (editor->mode==EDITOR_MODE_ERASE)
   {
