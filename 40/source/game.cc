@@ -203,6 +203,7 @@ static bool update_play(Game* game)
   update(&game->minimap,&game->world.map.collision,game->player.position,game->dt);
   draw(&game->minimap,&game->gui);
 
+  gui_group(&game->gui,game->gui.texture);
   gui_icon(&game->gui,{2.0f, 2.0f},game->heart);
   gui_label(&game->gui,game->font_id,{12.0f,4.0f},WHITE,"%d",game->player.health);
 

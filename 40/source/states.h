@@ -14,12 +14,12 @@ static const char* game_state_string(GameState state)
 {
   switch(state)
   {
-    case GAME_STATE_LOADING: return "game_state_loading"; break;
-    case GAME_STATE_MENU: return "game_state_menu"; break;
-    case GAME_STATE_OPTIONS: return "game_state_options"; break;
-    case GAME_STATE_PLAY: return "game_state_play"; break;
-    case GAME_STATE_END: return "game_state_end"; break;
+    case GAME_STATE_LOADING: return "loading"; break;
+    case GAME_STATE_MENU: return "menu"; break;
+    case GAME_STATE_OPTIONS: return "options"; break;
+    case GAME_STATE_PLAY: return "play"; break;
+    case GAME_STATE_END: return "end"; break;
     case GAME_STATE_EDITOR: return "editor"; break;
   }
-  return "GAME_STATE_UNKNOWN";
+  return "unknown";
 }

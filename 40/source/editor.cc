@@ -82,6 +82,7 @@ enum TileType
   TILE_TELEPORT,
   TILE_TRIGGER,
   TILE_VOID,
+  TILE_COUNT,
 };
 
 static const char* global_tile_types[]=
@@ -130,8 +131,11 @@ struct Editor
   v2 mouse;
 
   v2 toolbar_position;
+  v2 toolbar_dim;
   v2 icon_dim;
+  v2 icon_positions[EDITOR_ICON_COUNT];
   Sprite icons[EDITOR_ICON_COUNT];
+  Sprite tile_icons[TILE_COUNT];
 
   float grid_zoom;
   v2 grid_offset;
@@ -140,11 +144,17 @@ struct Editor
   int count;
   v2 grid[512];
 
+  bool has_been_edited;
+  char filename[512];
+
   EditorMode mode;
   BrushType brush;
   int selected_index;
   int selected_x;
   int selected_y;
+  int hover_index;
+  int hover_x;
+  int hover_y;
   unsigned floors[4];
   int num_tiles;
   MapTile tiles[4096];
@@ -163,18 +173,34 @@ bool init(Editor* editor,int width,int height)
   editor->mouse={0.0f,0.0f};
 
   editor->toolbar_position={2.0f,2.0f};
+  editor->toolbar_dim={editor->icon_dim.x*2.0f,editor->icon_dim.y*EDITOR_ICON_COUNT+100.0f};
   editor->icon_dim={16.0f,16.0f};
   const float icon_width=editor->icon_dim.x;
   const float icon_height=editor->icon_dim.y;
   for (int i=0;i<EDITOR_ICON_COUNT;i++)
   {
+    int px=i%2;
+    int py=i/2;
+    v2 icon_position={px*icon_width,py*icon_height};
+    editor->icon_positions[i]=editor->toolbar_position+icon_position;
+
     int tx=i%8;
     int ty=i/8;
-
     Sprite sprite;
     init(&sprite,&bitmap, tx*icon_width,ty*icon_height,icon_width,icon_height);
     editor->icons[i]=sprite;
   }
+  for (int i=0;i<TILE_COUNT;i++)
+  {
+    int tx=i%8;
+    int ty=i/8+4;
+
+    Sprite sprite;
+    init(&sprite,&bitmap, tx*icon_width,ty*icon_height,icon_width,icon_height);
+    sprite.dim={1.0f,1.0f};
+    editor->tile_icons[i]=sprite;
+  }
+
   destroy(&bitmap);
 
   editor->grid_zoom=4.0f;
@@ -201,11 +227,17 @@ bool init(Editor* editor,int width,int height)
     editor->grid[editor->count++]={px,64.0f};
   }
 
+  editor->has_been_edited=false;
+  memset(editor->filename,0,sizeof(editor->filename));
+
   editor->mode=EDITOR_MODE_SELECT;
   editor->brush=BRUSH_FLOOR;
   editor->selected_index=-1;
   editor->selected_x=-1;
   editor->selected_y=-1;
+  editor->hover_index=-1;
+  editor->hover_x=-1;
+  editor->hover_y=-1;
   for (int i=0;i<4;i++)
   {
     editor->floors[i]=0;
@@ -217,6 +249,130 @@ bool init(Editor* editor,int width,int height)
 
   return true;
 }
+
+static void on_null_clicked(Editor* editor)
+{
+}
+
+static void on_new_clicked(Editor* editor)
+{
+  for (int i=0;i<4096;i++)
+  {
+    set_tile(editor->tiles+i,TILE_VOID,0,0,0);
+  }
+}
+
+static void on_load_clicked(Editor* editor)
+{
+  char filename[1024]={};
+  int len=sizeof(filename);
+  if (bq_open_file_dialog(filename,len))
+  {
+    bq_log("[editor] load file %s\n",filename);
+  }
+}
+
+static void on_save_clicked(Editor* editor)
+{
+  char filename[1024]={};
+  int len=sizeof(filename);
+  if (bq_open_file_dialog(filename,len))
+  {
+    bq_log("[editor] save file %s\n",filename);
+  }
+}
+
+static void on_save_as_clicked(Editor* editor)
+{
+}
+
+static void on_select_clicked(Editor* editor)
+{
+  editor->mode=EDITOR_MODE_SELECT;
+}
+
+static void on_erase_clicked(Editor* editor)
+{
+  editor->mode=EDITOR_MODE_ERASE;
+}
+
+static void on_paint_clicked(Editor* editor)
+{
+  editor->mode=EDITOR_MODE_PAINT;
+}
+
+static void on_floor_brush_clicked(Editor* editor)
+{
+  editor->brush=BRUSH_FLOOR;
+}
+
+static void on_player_brush_clicked(Editor* editor)
+{
+  editor->brush=BRUSH_PLAYER;
+}
+
+static void on_exit_brush_clicked(Editor* editor)
+{
+  editor->brush=BRUSH_EXIT;
+}
+
+static void on_light_brush_clicked(Editor* editor)
+{
+  editor->brush=BRUSH_LIGHT;
+}
+
+static void on_ammo_brush_clicked(Editor* editor)
+{
+  editor->brush=BRUSH_AMMO;
+}
+
+static void on_health_brush_clicked(Editor* editor)
+{
+  editor->brush=BRUSH_HEALTH;
+}
+
+static void on_key_brush_clicked(Editor* editor)
+{
+  editor->brush=BRUSH_KEY;
+}
+
+static void on_door_brush_clicked(Editor* editor)
+{
+  editor->brush=BRUSH_DOOR;
+}
+
+static void on_teleport_brush_clicked(Editor* editor)
+{
+  editor->brush=BRUSH_TELEPORT;
+}
+
+static void on_trigger_brush_clicked(Editor* editor)
+{
+  editor->brush=BRUSH_TRIGGER;
+}
+
+typedef void (*on_button_clicked_callback)(Editor* editor);
+static on_button_clicked_callback global_editor_callbacks[]=
+{
+  on_new_clicked,
+  on_load_clicked,
+  on_save_clicked,
+  on_save_as_clicked,
+  on_select_clicked,
+  on_erase_clicked,
+  on_paint_clicked,
+  on_null_clicked, // unused0
+  on_floor_brush_clicked,
+  on_player_brush_clicked,
+  on_exit_brush_clicked,
+  on_light_brush_clicked,
+  on_ammo_brush_clicked,
+  on_health_brush_clicked,
+  on_key_brush_clicked,
+  on_door_brush_clicked,
+  on_teleport_brush_clicked,
+  on_trigger_brush_clicked,
+};
 
 bool update_editor(Editor* editor,const Input* input,GUI* gui,float dt)
 {
@@ -235,19 +391,42 @@ bool update_editor(Editor* editor,const Input* input,GUI* gui,float dt)
     editor->grid_tile_dim={editor->grid_zoom,editor->grid_zoom};
   }
 
-  v2 mp=mouse_position_scaled(editor->width,editor->height);
-  // select tile
-  if (is_left_down_once(input))
-  {
-    v2 mpd=mp-editor->grid_offset;
-    int x=(int)(mpd.x/editor->grid_tile_dim.x);
-    int y=(int)(mpd.y/editor->grid_tile_dim.x);
+  v2 mp=mouse_position_scaled(editor->width,editor->height);  
+  v2 mpd=mp-editor->grid_offset;
+  editor->hover_x=(int)(mpd.x/editor->grid_tile_dim.x);
+  editor->hover_y=(int)(mpd.y/editor->grid_tile_dim.x);
 
-    if (x>=0&&x<64&&y>=0&&y<64)
+  bool is_inside_grid=(editor->hover_x>=0&&
+    editor->hover_x<64&&
+    editor->hover_y>=0&&
+    editor->hover_y<64);
+  
+  if (is_inside_grid)
+  {
+    editor->hover_index=editor->hover_x+editor->hover_y*64;
+  }
+  else 
+  {
+    editor->hover_index=-1;
+    editor->hover_x=-1;
+    editor->hover_y=-1;
+  }
+
+  // pan camera
+  if (is_right_down(input))
+  {
+    v2 dm=(mp-editor->mouse);
+    editor->grid_offset=editor->grid_offset+dm;
+  }
+
+  // select tile
+  if (is_left_down_once(input)&&editor->mode==EDITOR_MODE_SELECT)
+  {
+    if (is_inside_grid)
     {
-      editor->selected_index=y*64+x;
-      editor->selected_x=x;
-      editor->selected_y=y;
+      editor->selected_index=editor->hover_index;
+      editor->selected_x=editor->hover_x;
+      editor->selected_y=editor->hover_y;
     }
     else
     {
@@ -256,12 +435,6 @@ bool update_editor(Editor* editor,const Input* input,GUI* gui,float dt)
       editor->selected_y=-1;
     }
   }
-  // move grid around
-  if (is_right_down(input))
-  {
-    v2 dm=(mp-editor->mouse);
-    editor->grid_offset=editor->grid_offset+dm;
-  }
   editor->mouse=mp;
 
   v2 go=editor->grid_offset/editor->grid_zoom;
@@ -269,29 +442,33 @@ bool update_editor(Editor* editor,const Input* input,GUI* gui,float dt)
   m4 s=scale({editor->grid_zoom,editor->grid_zoom,1.0f});
   editor->grid_transform=bq_multiply(t,s);
 
+  const v2 dim=editor->icon_dim;
   const float icon_width=editor->icon_dim.x;
   const float icon_height=editor->icon_dim.y;
   const bool is_clicked=is_left_down_once(input);
-  const v2 dim=editor->icon_dim;
 
+  bool is_down=is_left_down(input);
+  if (overlap(mp,{},editor->toolbar_dim))
+  {
+    is_down=false;
+  }
+  
   v2 offset={};
   gui_group(gui,editor->texture);
-
-  // new, load, save, save-as, select, paint, erase
-  for (int i=0;i<EDITOR_ICON_UNUSED0;i++)
+  for (int i=0;i<EDITOR_ICON_COUNT;i++)
   {
-    v2 pos=editor->toolbar_position+offset;
+    if (i==EDITOR_ICON_UNUSED0) {continue;}
+
+    v2 pos=editor->icon_positions[i];
     if (gui_button(gui,is_clicked,pos,dim,editor->icons[i]))
     {
-      if (i>=EDITOR_ICON_SELECT)
-      {
-        editor->mode=(EditorMode)(i-EDITOR_ICON_SELECT);
-      }
+      global_editor_callbacks[i](editor);
     }
-    offset.x+=icon_width;
   }
-  if (editor->mode==EDITOR_MODE_PAINT)
+  /*if (editor->mode==EDITOR_MODE_PAINT)
   {
+  // new, load, save, save-as, select, paint, erase
+    // brushes
     for (int i=EDITOR_ICON_FLOOR;i<EDITOR_ICON_COUNT;i++)
     {
       v2 pos=editor->toolbar_position+offset;
@@ -301,7 +478,7 @@ bool update_editor(Editor* editor,const Input* input,GUI* gui,float dt)
       }
       offset.x+=icon_width;
     }  
-  }
+  }*/
   gui_pop_group(gui);
 
   offset.x=2.0f;
@@ -316,8 +493,23 @@ bool update_editor(Editor* editor,const Input* input,GUI* gui,float dt)
     gui_label(gui,0,lpos,WHITE,global_brush_modes[editor->brush]);
   }
   pos.y+=10;
-  gui_label(gui,0,pos,WHITE,"#%d (X:%d Y:%d)",editor->selected_index,editor->selected_x,editor->selected_y);
-
+  if (editor->hover_index!=-1)
+  {
+    MapTile* tile=editor->tiles+editor->hover_index;
+    gui_label(gui,0,pos,WHITE,"#%d (X:%d Y:%d T:%s)",
+      editor->hover_index,
+      editor->hover_x,
+      editor->hover_y,
+      global_tile_types[tile->type]);
+  }
+  else 
+  {
+    gui_label(gui,0,pos,WHITE,"#%d (X:%d Y:%d T:?)",
+        editor->hover_index,
+        editor->hover_x,
+        editor->hover_y);
+  }
+    
   if (editor->selected_index!=-1)
   {
     pos.y+=10;
@@ -328,20 +520,47 @@ bool update_editor(Editor* editor,const Input* input,GUI* gui,float dt)
   // select, paint and erase logic
   if (editor->mode==EDITOR_MODE_SELECT)
   {
-    
+    if (editor->selected_index!=-1)
+    {
+      v2 btn_dim={8.0f,8.0f};
+      MapTile* tile=editor->tiles+editor->selected_index;
+      switch(tile->type)
+      {
+        case TILE_KEY:
+        case TILE_DOOR:
+        case TILE_TELEPORT:
+        {
+          pos.y+=10;
+          if (gui_button(gui,0,is_clicked,pos,btn_dim,"+"))
+          {
+            tile->data[0]=(tile->data[0]+1)%0xff;
+          }
+          pos.x+=10;
+          if (gui_button(gui,0,is_clicked,pos,btn_dim,"-"))
+          {
+            tile->data[0]=(tile->data[0]-1)%0xff;
+          }
+          pos.x+=10;
+          pos.y+=2;
+          gui_label(gui,0,pos,WHITE,"ID: %X",tile->data[0]);
+        } break;
+      }
+    }
   }
   else if (editor->mode==EDITOR_MODE_ERASE)
   {
-    if (editor->selected_index!=-1)
+    if (editor->hover_index!=-1&&is_down)
     {
-      set_tile(editor->tiles+editor->selected_index,TILE_VOID,0,0,0);
+      editor->has_been_edited=true;
+      set_tile(editor->tiles+editor->hover_index,TILE_VOID,0,0,0);
     }
   }
   else if (editor->mode==EDITOR_MODE_PAINT)
   {
-    if (editor->selected_index!=-1)
+    if (editor->hover_index!=-1&&is_down)
     {
-      MapTile* tile=editor->tiles+editor->selected_index;
+      editor->has_been_edited=true;
+      MapTile* tile=editor->tiles+editor->hover_index;
       set_tile(tile,(TileType)editor->brush,0,0,0);
     }
   }
@@ -353,8 +572,20 @@ void draw(Editor* editor)
 {
   bq_prepare2d();
   bq_projection(editor->projection);
-  bq_bind_texture(0);
+
   bq_push_transform(editor->grid_transform);
+  bq_bind_texture(editor->texture);
+  for (int i=0;i<4096;i++)
+  {
+    MapTile* tile=editor->tiles+i;
+    if (tile->type==TILE_VOID) {continue;}
+
+    v2 pos={(float)(i%64),(float)(i/64)};
+    Sprite* sprite=editor->tile_icons+tile->type;
+    draw(sprite,pos,WHITE);
+  }
+
+  bq_bind_texture(0);
   bq_render2d_lines(GRAY,editor->count,editor->grid);
   bq_pop_transform();
 }
