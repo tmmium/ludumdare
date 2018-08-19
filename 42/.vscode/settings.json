@@ -1,0 +1,29 @@
+{
+  "editor.fontFamily": "Liberation Mono",
+  "files.associations": {
+    "*.rh": "c",
+    "xiosbase": "cpp",
+    "type_traits": "cpp",
+    "ios": "cpp",
+    "xlocale": "cpp",
+    "limits": "cpp",
+    "xstring": "cpp",
+    "istream": "c",
+    "iosfwd": "cpp",
+    "xutility": "cpp",
+    "utility": "cpp",
+    "xmemory0": "cpp",
+    "xstddef": "cpp",
+    "xtr1common": "cpp",
+    "xlocnum": "c",
+    "system_error": "cpp",
+    "initializer_list": "cpp",
+    "cmath": "cpp",
+    "dsound.h": "c",
+    "avocado_keyboard.h": "c",
+    "windows.h": "c",
+    "pea.h": "c",
+    "types.h": "c",
+    "stdio.h": "c"
+  }
+}
