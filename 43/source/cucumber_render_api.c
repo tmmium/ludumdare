@@ -371,18 +371,36 @@ qu_render_add_attribute(qu_vertex_format_t *format, int index, int size,
 }
 
 void
-qu_render_add_texture(qu_bindings_t *bindings, qu_texture_t texture)
+qu_render_create_framebuffer(qu_framebuffer_t *framebuffer, int width, int height)
+{
+   ASSERT(!"impl");
+}
+
+void
+qu_render_destroy_framebuffer(qu_framebuffer_t *framebuffer)
+{
+   ASSERT(!"impl");
+}
+
+void
+qu_render_bind_framebuffer(qu_framebuffer_t *framebuffer)
+{
+   ASSERT(!"impl");
+}
+
+void
+qu_render_add_texture_binding(qu_bindings_t *bindings, qu_texture_t texture)
 {
    ASSERT(bindings->texture_count < QU_MAX_TEXTURE_BINDINGS);
 
    bindings->textures[bindings->texture_count++] = texture;
 }
 
-#pragma warning(push)
-#pragma warning(disable: 4090) // : '=': different 'const' qualifiers
+//#pragma warning(push)
+//#pragma warning(disable: 4090) // : '=': different 'const' qualifiers
 void
-qu_render_add_uniform(qu_bindings_t *bindings, qu_uniform_type_t type,
-                      int location, int size, const void *data)
+qu_render_add_uniform_binding(qu_bindings_t *bindings, qu_uniform_type_t type,
+                              int location, int size, const void *data)
 {
    ASSERT(bindings->uniform_count < QU_MAX_UNIFORM_BINGINGS);
 
@@ -392,7 +410,7 @@ qu_render_add_uniform(qu_bindings_t *bindings, qu_uniform_type_t type,
    uniform->size = size;
    uniform->data = data;
 }
-#pragma warning(pop)
+//#pragma warning(pop)
 
 void
 qu_render_bind_pipeline(qu_pipeline_t *pipeline, qu_viewport_t *viewport)

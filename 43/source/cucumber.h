@@ -18,6 +18,7 @@ extern "C" {
 
 typedef void         qu_void_t;
 typedef int          qu_int32_t;
+typedef unsigned int qu_uint32_t;
 typedef long long    qu_int64_t;
 typedef enum { QU_FALSE, QU_TRUE, } qu_bool32_t;
 
@@ -31,9 +32,9 @@ CUCUMBER_API qu_bool32_t
 qu_process();
 
 // render api
-typedef struct qu_shader_t { unsigned int id; } qu_shader_t; 
-typedef struct qu_texture_t { unsigned int id; } qu_texture_t;
-typedef struct qu_buffer_t { unsigned int id; } qu_buffer_t;
+typedef struct qu_shader_t { qu_uint32_t id; } qu_shader_t; 
+typedef struct qu_texture_t { qu_uint32_t id; } qu_texture_t;
+typedef struct qu_buffer_t { qu_uint32_t id; } qu_buffer_t;
 
 typedef enum 
 { 
@@ -195,6 +196,15 @@ typedef struct
    qu_vertex_attribute_t attributes[QU_MAX_VERTEX_ATTRIBUTES];
 } qu_vertex_format_t;
 
+typedef struct
+{
+   qu_uint32_t id;
+   int width;
+   int height;
+   qu_uint32_t color_id;
+   qu_uint32_t depth_id;
+} qu_framebuffer_t;
+
 CUCUMBER_API void 
 qu_render_create_shader(qu_shader_t *shader, 
                         const char *vertex_shader_source, 
@@ -240,6 +250,15 @@ CUCUMBER_API void
 qu_render_add_attribute(qu_vertex_format_t *format, int index, int size,
                         qu_attribute_type_t type, qu_bool32_t normalized);
 
+CUCUMBER_API void
+qu_render_create_framebuffer(qu_framebuffer_t *framebuffer, int width, int height);
+
+CUCUMBER_API void
+qu_render_destroy_framebuffer(qu_framebuffer_t *framebuffer);
+
+CUCUMBER_API void
+qu_render_bind_framebuffer(qu_framebuffer_t *framebuffer);
+
 typedef struct 
 {
    int x, y;
@@ -261,7 +280,7 @@ typedef struct
    qu_uniform_type_t type;
    int location;
    int size;
-   void *data;
+   const void *data;
 } qu_uniform_t;
 
 typedef struct 
@@ -297,11 +316,11 @@ typedef struct
 } qu_drawcall_t;
 
 CUCUMBER_API void
-qu_render_add_texture(qu_bindings_t *bindings, qu_texture_t texture);
+qu_render_add_texture_binding(qu_bindings_t *bindings, qu_texture_t texture);
 
 CUCUMBER_API void
-qu_render_add_uniform(qu_bindings_t *bindings, qu_uniform_type_t type,
-                      int location, int size, const void *data);
+qu_render_add_uniform_binding(qu_bindings_t *bindings, qu_uniform_type_t type,
+                              int location, int size, const void *data);
 
 CUCUMBER_API void
 qu_render_bind_pipeline(qu_pipeline_t *pipeline, qu_viewport_t *viewport);

@@ -9,29 +9,31 @@ int __stdcall WinMain(void *,void *,char *,int)
 {
    if (qu_init(1280, 720, "ludumdare"))
    {
-      const char *vertex_shader_source = 
-         "#version 330\n"
-         "layout(location = 0) in vec3 in_vertex;\n"
-         "layout(location = 1) in vec2 in_texcoord;\n"
-         "uniform mat4 u_proj;\n"
-         "uniform mat4 u_view;\n"
-         "uniform mat4 u_world;\n"
-         "out vec2 v_texcoord;\n"
-         "void main() {\n"
-         "  gl_Position = u_proj * u_view * u_world * vec4(in_vertex, 1);\n"
-         "  v_texcoord = in_texcoord;\n"
-         "}";
-      const char *fragment_shader_source = 
-         "#version 330\n"
-         "uniform sampler2D u_diffuse;\n"
-         "in vec2 v_texcoord;\n"
-         "out vec4 frag_color;\n"
-         "void main() {\n"
-         "  frag_color = texture(u_diffuse, v_texcoord);\n"
-         "}";
-
       qu_shader_t shader = {};
-      qu_render_create_shader(&shader, vertex_shader_source, fragment_shader_source);
+      {
+         const char *vertex_shader_source = 
+            "#version 330\n"
+            "layout(location = 0) in vec3 in_vertex;\n"
+            "layout(location = 1) in vec2 in_texcoord;\n"
+            "uniform mat4 u_proj;\n"
+            "uniform mat4 u_view;\n"
+            "uniform mat4 u_world;\n"
+            "out vec2 v_texcoord;\n"
+            "void main() {\n"
+            "  gl_Position = u_proj * u_view * u_world * vec4(in_vertex, 1);\n"
+            "  v_texcoord = in_texcoord;\n"
+            "}";
+         const char *fragment_shader_source = 
+            "#version 330\n"
+            "uniform sampler2D u_diffuse;\n"
+            "in vec2 v_texcoord;\n"
+            "out vec4 frag_color;\n"
+            "void main() {\n"
+            "  frag_color = texture(u_diffuse, v_texcoord);\n"
+            "}";
+
+         qu_render_create_shader(&shader, vertex_shader_source, fragment_shader_source);
+      }
 
       qu_blend_state_t blend_state = {};
       blend_state.enabled = QU_TRUE;
@@ -192,27 +194,27 @@ int __stdcall WinMain(void *,void *,char *,int)
 
       int diffuse_sampler_index = 0;
       qu_bindings_t bindings = {};
-      qu_render_add_texture(&bindings, texture);
-      qu_render_add_uniform(&bindings, 
-                            QU_UNIFORM_TYPE_MATRIX, 
-                            uniform_locations[0], // u_proj
-                            1,
-                            perspective);
-      qu_render_add_uniform(&bindings, 
-                            QU_UNIFORM_TYPE_MATRIX, 
-                            uniform_locations[1], // u_view
-                            1,
-                            identity);
-      qu_render_add_uniform(&bindings, 
-                            QU_UNIFORM_TYPE_MATRIX, 
-                            uniform_locations[2], // u_world
-                            1,
-                            world);
-      qu_render_add_uniform(&bindings, 
-                            QU_UNIFORM_TYPE_SAMPLER, 
-                            uniform_locations[3], // u_diffuse
-                            1,
-                            &diffuse_sampler_index);
+      qu_render_add_texture_binding(&bindings, texture);
+      qu_render_add_uniform_binding(&bindings, 
+                                    QU_UNIFORM_TYPE_MATRIX, 
+                                    uniform_locations[0], // u_proj
+                                    1,
+                                    perspective);
+      qu_render_add_uniform_binding(&bindings, 
+                                    QU_UNIFORM_TYPE_MATRIX, 
+                                    uniform_locations[1], // u_view
+                                    1,
+                                    identity);
+      qu_render_add_uniform_binding(&bindings, 
+                                    QU_UNIFORM_TYPE_MATRIX, 
+                                    uniform_locations[2], // u_world
+                                    1,
+                                    world);
+      qu_render_add_uniform_binding(&bindings, 
+                                    QU_UNIFORM_TYPE_SAMPLER, 
+                                    uniform_locations[3], // u_diffuse
+                                    1,
+                                    &diffuse_sampler_index);
 
       qu_drawcall_t drawcall = {};
       drawcall.primitive_topology = QU_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
